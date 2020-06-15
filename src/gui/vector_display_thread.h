@@ -57,11 +57,8 @@ private:
 
   bool runApp;
   bool persistentDisplay;
-  bool blankDisplay;
   bool clearDisplay;
   bool autoUpdateMap;
-  // Maximum display refresh rate.
-  float maxFps;
 
   geometry_msgs::PoseWithCovarianceStamped localizationInitMsg;
   ros::Publisher initialPosePublisher;

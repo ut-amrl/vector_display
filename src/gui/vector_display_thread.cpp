@@ -65,6 +65,7 @@ DEFINE_bool(autoswitch_map, false,
 DEFINE_bool(live, false, "Live view");
 DEFINE_bool(test, false, "Test mode");
 DEFINE_string(map, "GDC3", "Initial localization map to load");
+DEFINE_double(max_fps, 60.0, "Maximum graphics refresh rate");
 
 string MapnameToLocalizationFilename(const string& map) {
   return StringPrintf("%s/%s/%s.vectormap.txt",
@@ -233,8 +234,6 @@ void VectorDisplayThread::KeyboardEventCallback(
 
     case Qt::Key_M : {
       ChangeMap();
-      //QInputDialog::
-      // blankDisplay = !blankDisplay;
     } break;
 
     case Qt::Key_U : {
@@ -629,11 +628,11 @@ void VectorDisplayThread::compileDisplay() {
   static const VectorDisplay::Color LidarPointColor(0xFFF0761F);
   static const VectorDisplay::Color KinectScanColor(0xFFFF0505);
   static const VectorDisplay::Color PointCloudColor(0xFFDE2352);
-  static const bool debug = false;
+  static const bool debug = true;
 
   if (debug) printf("GUI updated!\n");
-  if (GetWallTime()-tLast< 1.0 / maxFps) return;
-  tLast = GetWallTime();
+  if (GetMonotonicTime()-tLast< 1.0 / FLAGS_max_fps) return;
+  tLast = GetMonotonicTime();
 
   lines.clear();
   points.clear();
@@ -649,9 +648,7 @@ void VectorDisplayThread::compileDisplay() {
   textHeights.clear();
   textInWindowCoords.clear();
 
-  if (!blankDisplay) {
-    drawMap(&lines, &lineColors);
-  }
+  drawMap(&lines, &lineColors);
 
   if (FLAGS_edit_navigation || FLAGS_edit_semantic || FLAGS_view_navmap) {
     DrawNavigationMap();
