@@ -295,7 +295,7 @@ void VectorDisplayThread::editGraph(
 
   const Vector2f p0 = mouse_down;
   const Vector2f p1 = mouse_up;
-  static const float kMaxError = 0.1;
+  static const float kMaxError = 1.0f;
 
   // Check if an edge was selected.
   uint64_t edge_p0(0), edge_p1(0);
@@ -309,7 +309,7 @@ void VectorDisplayThread::editGraph(
   // Check if the mouse down location was near a vertex.
   const uint64_t nearest_vertex_down = navMap.GetClosestVertex(p0);
   const float down_vertex_dist =
-      (navMap.states[nearest_vertex_down].loc - p0).norm();
+      (navMap.KeyToState(nearest_vertex_down).loc - p0).norm();
   const bool down_on_vertex =
       nearest_vertex_down < navMap.states.size() &&
       down_vertex_dist < kMaxError;
@@ -317,7 +317,7 @@ void VectorDisplayThread::editGraph(
   // Check if the mouse up location was near a vertex.
   const uint64_t nearest_vertex_up = navMap.GetClosestVertex(p1);
   const float up_vertex_dist =
-      (navMap.states[nearest_vertex_up].loc - p0).norm();
+      (navMap.KeyToState(nearest_vertex_up).loc - p1).norm();
   const bool up_on_vertex =
       nearest_vertex_up < navMap.states.size() &&
       up_vertex_dist < kMaxError;
@@ -399,7 +399,7 @@ void VectorDisplayThread::editGraph(
       // Move edge or vertex
       if (down_on_vertex &&
           (!down_on_edge || down_vertex_dist < nearest_edge_dist)) {
-        navMap.states[nearest_vertex_down].loc = p1;
+        navMap.KeyToState(nearest_vertex_down).loc = p1;
       } else if (down_on_edge) {
         Vector2f shift = p1 - p0;
         navMap.states[edge_p0].loc += shift;
