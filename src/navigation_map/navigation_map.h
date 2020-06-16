@@ -261,8 +261,22 @@ struct GraphDomain {
   }
 
   bool Save(const std::string& file) {
+    ScopedFile fid(file, "w", true);
+    for(uint32_t i = 0; i < states.size(); i++) {
+      std::stringstream line;
+      line << states[i].id << ", " << states[i].loc.x() << ", " << states[i].loc.y();
+      // handle neighbors
+      line << ", " << neighbors[i].size();
+      for(uint32_t j = 0; j < neighbors[i].size(); j++) {
+        line << ", " << neighbors[i][j];
+      }
+      line << std::endl;
+      fputs(line.str().c_str(), fid());
+    }
+    return true;
+
     fprintf(stderr, "Saving nav map not implemented.\n");
-    return false;
+    return true;
   }
 
   uint64_t GetClosestVertex(const Eigen::Vector2f& p) {
