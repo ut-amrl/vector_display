@@ -228,6 +228,11 @@ void VectorDisplayThread::ChangeMap() {
 void VectorDisplayThread::KeyboardEventCallback(
     uint32_t key_code,uint32_t modifiers) {
   switch (key_code) {
+    case Qt::Key_R : {
+      compileDisplay();
+      break;
+    }
+
     case Qt::Key_C : {
       clearDisplay = true;
     } break;
@@ -246,7 +251,6 @@ void VectorDisplayThread::KeyboardEventCallback(
              static_cast<int>(vectorMap.lines.size()));
     } break;
   }
-  compileDisplay();
 }
 
 void VectorDisplayThread::editMap(
@@ -288,6 +292,7 @@ void VectorDisplayThread::editMap(
 void VectorDisplayThread::editGraph(
     const Vector2f& mouse_down, const Vector2f& mouse_up,
     float orientation, uint32_t modifiers) {
+
   const Vector2f p0 = mouse_down;
   const Vector2f p1 = mouse_up;
   static const float kMaxError = 0.1;
@@ -445,6 +450,7 @@ void VectorDisplayThread::MouseEventCallback(
     }
     return;
   }
+
   if (FLAGS_edit_navigation || FLAGS_edit_semantic) {
     editGraph(mouse_down, mouse_up, orientation, modifiers);
     return;
@@ -591,35 +597,31 @@ void VectorDisplayThread::clearDisplayMessages() {
 }
 
 void VectorDisplayThread::DrawNavigationMap() {
-  printf("TODO: Draw navigation map\n");
-
-  // VectorDisplay::Color roomLabel(0.0, 0.0, 0.0, 1.0);
-  // const vector<Vertex>& vertices = navMap.Vertices;
-  // for(unsigned int i=0; i<navMap.numVertices; ++i) {
-  //   Vector2f v = navMap.Vertices[i].loc;
-  //   points.push_back(Vector2f(V2COMP(v)));
-  //   pointColors.push_back(VectorDisplay::Color(0xFF008800));
-  //   if (FLAGS_edit_semantic) {
-  //     textStrings.push_back(vertices[i].name);
-  //     textLocs.push_back(Vector2f(V2COMP(v)));
-  //     textColors.push_back(roomLabel);
-  //     textHeights.push_back(0.5);
-  //     const Vector2f p0(V2COMP(vertices[i].loc));
-  //     Vector2f heading;
-  //     heading.heading(vertices[i].theta);
-  //     const Vector2f p1(V2COMP(vertices[i].loc + 0.5*heading));
-  //     lines.push_back(VectorDisplay::Line(p0, p1));
-  //     lineColors.push_back(VectorDisplay::Color(0x7F404040));
-  //   }
-  // }
-  // for(unsigned int i=0; i<navMap.numEdges; i++) {
-  //   int v1 = navMap.Edges[i].v1;
-  //   int v2 = navMap.Edges[i].v2;
-
-  //   lines.push_back(VectorDisplay::Line(Vector2f(V2COMP(vertices[v1].loc)),
-  //                                       Vector2f(V2COMP(vertices[v2].loc))));
-  //   lineColors.push_back(VectorDisplay::Color(0xFFFF00FF));
-  // }
+  VectorDisplay::Color roomLabel(0.0, 0.0, 0.0, 1.0);
+  for(unsigned int i=0; i<navMap.states.size(); ++i) {
+    Vector2f v = navMap.states[i].loc;
+    points.push_back(v);
+    pointColors.push_back(VectorDisplay::Color(0xFF008800));
+    if (FLAGS_edit_semantic) {
+      textStrings.push_back(std::to_string(navMap.states[i].id));
+      textLocs.push_back(v);
+      textColors.push_back(roomLabel);
+      textHeights.push_back(0.5);
+      const Vector2f p0(navMap.states[i].loc);
+      Rotation2Df heading = Rotation2Df(navMap.states[i].theta);
+      const Vector2f halfUnit = Vector2f(0.5, 0);
+      const Vector2f p1(navMap.states[i].loc + heading*halfUnit);
+      lines.push_back(VectorDisplay::Line(p0, p1));
+      lineColors.push_back(VectorDisplay::Color(0x7F404040));
+    }
+  }
+  for(unsigned int i=0; i<navMap.neighbors.size(); i++) {
+    for(unsigned int j=0; j < navMap.neighbors[i].size(); j++) {
+      lines.push_back(VectorDisplay::Line(navMap.states[i].loc,
+                                          navMap.states[navMap.neighbors[i][j]].loc));
+      lineColors.push_back(VectorDisplay::Color(0xFFFF00FF));
+    }
+  }
 }
 
 void VectorDisplayThread::compileDisplay() {
@@ -853,6 +855,7 @@ void VectorDisplayThread::run() {
   } else {
     map_name_ = FLAGS_map;
     vectorMap.Load(MapnameToLocalizationFilename(map_name_));
+    navMap.Load(MapnameToNavigationFilename(map_name_));
 
     ros::Subscriber guiSub;
     ros::Subscriber laserSub;
@@ -894,7 +897,6 @@ VectorDisplayThread::VectorDisplayThread(
   FLAGS_autoswitch_map = true;
   runApp = true;
   FLAGS_edit_localization = false;
-  FLAGS_edit_navigation = false;
   FLAGS_edit_semantic = false;
   clearDisplay = false;
   tPointCloud = 0.0;

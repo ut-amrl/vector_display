@@ -51,8 +51,10 @@ struct GraphDomain {
   struct State {
     uint64_t id;
     Eigen::Vector2f loc;
-    State(uint64_t id, float x, float y) : id(id), loc(x, y) {}
-    State(uint64_t id, const Eigen::Vector2f loc) : id(id), loc(loc) {}
+    float theta;
+    State(uint64_t id, float x, float y) : id(id), loc(x, y), theta(0.0f) {}
+    State(uint64_t id, const Eigen::Vector2f loc) : id(id), loc(loc), theta(0.0f) {}
+    State(uint64_t id, const Eigen::Vector2f loc, float theta) : id(id), loc(loc), theta(theta) {}
     State() {}
   };
 
@@ -277,6 +279,7 @@ struct GraphDomain {
 
   void Load(const std::string& file) {
     static const bool kDebug = true;
+
     ScopedFile fid(file, "r", true);
     CHECK_NOTNULL(fid());
     bool valid = true;

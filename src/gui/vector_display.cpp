@@ -76,7 +76,7 @@ VectorDisplay::VectorDisplay(QWidget* parent) :
   robotLoc = Vector2f(0.0, 0.0);
 
   lineThickness = 1.5;
-  pointsSize = 1.0;
+  pointsSize = 2.0;
 
   viewScale = 100.0 / static_cast<float>(min(width(), height()));
   viewXOffset = viewYOffset = 0.0;
