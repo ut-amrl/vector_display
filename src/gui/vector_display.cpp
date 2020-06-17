@@ -166,7 +166,7 @@ void VectorDisplay::mouseReleaseEvent(QMouseEvent* event) {
         (shiftKey ? 0x04 : 0) |
         (ctrlKey ? 0x02 : 0) |
         (altKey ? 0x01 : 0);
-    ptrMouseClickCallback(mouse_down_loc, setLocation2, setOrientation, modifier);
+    ptrMouseClickCallback(mouse_down_loc, setLocation2, setOrientation, viewScale, modifier);
   }
   if (rubberband_valid) {
     rubberband_valid = false;

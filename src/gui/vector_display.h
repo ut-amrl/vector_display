@@ -80,7 +80,7 @@ class VectorDisplay : public QGLWidget {
   };
 
   typedef void (*MouseClickCallback)
-      (const Eigen::Vector2f&, const Eigen::Vector2f&, float, uint32_t);
+      (const Eigen::Vector2f&, const Eigen::Vector2f&, float, float, uint32_t);
   typedef void (*MouseMoveCallback)
       (const Eigen::Vector2f&, uint32_t, uint32_t);
   typedef void (*KeyboardCallback)(uint32_t, uint32_t);

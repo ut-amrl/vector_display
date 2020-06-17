@@ -255,6 +255,7 @@ void VectorDisplayThread::KeyboardEventCallback(
 
 void VectorDisplayThread::editMap(
     const Vector2f& mouse_down, const Vector2f& mouse_up, float orientation,
+    float viewScale,
     uint32_t modifiers) {
   const Vector2f p0 = mouse_down;
   const Vector2f p1 = mouse_up;
@@ -270,7 +271,7 @@ void VectorDisplayThread::editMap(
 
     case 0x02: {
       // Delete Line
-      static const float kMaxError = 1.0;
+      static const float kMaxError = 4.0f * viewScale;
       int best_match = -1;
       float best_match_error = FLT_MAX;
       for (size_t i = 0; i < vectorMap.lines.size(); ++i) {
@@ -291,11 +292,11 @@ void VectorDisplayThread::editMap(
 
 void VectorDisplayThread::editGraph(
     const Vector2f& mouse_down, const Vector2f& mouse_up,
-    float orientation, uint32_t modifiers) {
+    float orientation, float viewScale, uint32_t modifiers) {
 
   const Vector2f p0 = mouse_down;
   const Vector2f p1 = mouse_up;
-  static const float kMaxError = 1.0f;
+  static const float kMaxError = 4.0f * viewScale;
 
   // Check if an edge was selected.
   uint64_t edge_p0(0), edge_p1(0);
@@ -441,10 +442,11 @@ void VectorDisplayThread::editGraph(
 void VectorDisplayThread::MouseEventCallback(
     const Vector2f& mouse_down,
     const Vector2f& mouse_up, float orientation,
+    float viewScale,
     uint32_t modifiers) {
   static const bool debug = false;
   if (FLAGS_edit_localization) {
-    editMap(mouse_down, mouse_up, orientation, modifiers);
+    editMap(mouse_down, mouse_up, orientation, viewScale, modifiers);
     if (modifiers == 0x01) {
       printf("Length: %f\n", (mouse_down - mouse_up).norm());
     }
@@ -452,7 +454,7 @@ void VectorDisplayThread::MouseEventCallback(
   }
 
   if (FLAGS_edit_navigation || FLAGS_edit_semantic) {
-    editGraph(mouse_down, mouse_up, orientation, modifiers);
+    editGraph(mouse_down, mouse_up, orientation, viewScale, modifiers);
     return;
   }
   {

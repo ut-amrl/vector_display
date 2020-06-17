@@ -127,6 +127,7 @@ public:
   void MouseEventCallback(
       const Eigen::Vector2f& mouse_down,
       const Eigen::Vector2f& mouse_up, float orientation,
+      float viewScale,
       uint32_t modifiers);
 
   void drawMap(std::vector<VectorDisplay::Line>* lines,
@@ -160,10 +161,12 @@ protected:
   // Edit the localization map
   void editMap(const Eigen::Vector2f& mouse_down,
                const Eigen::Vector2f& mouse_up, float orientation,
+               float viewScale,
                uint32_t modifiers);
   // Edit the navigation map or semantic map (both are really graphs)
   void editGraph(const Eigen::Vector2f& mouse_down,
                  const Eigen::Vector2f& mouse_up, float orientation,
+                 float viewScale,
                  uint32_t modifiers);
 
 public:

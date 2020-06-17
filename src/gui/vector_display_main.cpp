@@ -81,10 +81,10 @@ void MouseMoveCallback(
 }
 
 void MouseClickCallback(
-    const Vector2f& mouse_down, const Vector2f& mouse_up, float orientation,
+    const Vector2f& mouse_down, const Vector2f& mouse_up, float orientation, float viewScale,
     uint32_t modifiers) {
   if (thread_ != NULL) {
-    thread_->MouseEventCallback(mouse_down, mouse_up, orientation, modifiers);
+    thread_->MouseEventCallback(mouse_down, mouse_up, orientation, viewScale, modifiers);
   }
   mouse_click_msg_.header.seq++;
   mouse_click_msg_.header.stamp = ros::Time::now();
