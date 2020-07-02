@@ -42,7 +42,7 @@ MESSAGE(STATUS "Gui: ${Qt5Gui_INCLUDE_DIRS}")
 SET(libs roslib roscpp pthread glut gflags
     Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL
      ${LUA_LIBRARIES} rt GL GLU
-    glog X11 roscpp roslib amrl-shared-lib)
+    glog X11 roscpp roslib amrl_shared_lib)
 
 INCLUDE_DIRECTORIES(src/shared)
 ADD_SUBDIRECTORY(src/shared)
