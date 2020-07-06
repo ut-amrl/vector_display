@@ -39,3 +39,10 @@ For installation instructions for ROS, please consult the [ROS Installation Wiki
 ## Run
 
 Run `./bin/vector_display`
+
+## Example
+
+![EnML Example](example.png)
+
+An example ROS bag recording of visualizations published by Episodic non-Markov Localization:
+https://drive.google.com/file/d/1xFRnl43OD2SQKTVB_t0nEv_48WumtSWT/view?usp=sharing
