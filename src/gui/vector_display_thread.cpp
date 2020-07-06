@@ -32,7 +32,6 @@
 #include "gflags/gflags.h"
 
 #include "amrl_msgs/Localization2DMsg.h"
-#include "vector_display/LidarDisplayMsg.h"
 #include "vector_display.h"
 #include "vector_display_thread.h"
 
@@ -46,7 +45,6 @@ using Eigen::Vector2f;
 using Eigen::Rotation2Df;
 using amrl_msgs::Localization2DMsg;
 using amrl_msgs::VisualizationMsg;
-using vector_display::LidarDisplayMsg;
 using geometry_msgs::PoseWithCovarianceStamped;
 using std::min;
 using std::max;
@@ -67,6 +65,10 @@ DEFINE_bool(live, false, "Live view");
 DEFINE_bool(test, false, "Test mode");
 DEFINE_string(map, "UT_Campus", "Initial localization map to load");
 DEFINE_double(max_fps, 60.0, "Maximum graphics refresh rate");
+
+DEFINE_string(localization_topic, "localization", "Topic to listen for localization messages on");
+DEFINE_string(laser_topic, "scan", "Topic to listen for laser messages on");
+DEFINE_string(visualization_topic, "visualization", "Topic to listen for visualization messages on");
 
 string MapnameToLocalizationFilename(const string& map) {
   return StringPrintf("%s/%s/%s.vectormap.txt",
@@ -596,41 +598,7 @@ void VectorDisplayThread::visualizationCallback(
   compileDisplay();
 }
 
-void VectorDisplayThread::displayMsgCallback(
-    const ros::MessageEvent<LidarDisplayMsg const>& msgEvent) {
-  if (true) {
-    static bool displayed = false;
-    if (!displayed) {
-      printf("LidarDisplayMsg disabled!\n");
-      displayed = true;
-    }
-    return;
-  }
-  static const bool debug = false;
-  const vector_display::LidarDisplayMsgConstPtr &msg = msgEvent.getConstMessage();
-  bool duplicate = false;
-  unsigned int i = 0;
-  if (debug) {
-    printf("Received message from %s\n",
-           msgEvent.getPublisherName().c_str());
-  }
-  for (; i < displayProviders.size() && !duplicate; i++) {
-    if (displayProviders[i].compare(msgEvent.getPublisherName())== 0)
-      duplicate = true;
-  }
-  if (debug) printf("Duplicate:%d, i:%d\n", duplicate, i);
-  if (duplicate) {
-    i--;
-    displayMsgs[i] = *msg;
-  } else {
-    displayMsgs.push_back(*msg);
-    displayProviders.push_back(msgEvent.getPublisherName());
-  }
-  compileDisplay();
-}
-
 void VectorDisplayThread::clearDisplayMessages() {
-  displayMsgs.clear();
   displayProviders.clear();
   laserScanMsg.ranges.clear();
   kinectScanMsg.ranges.clear();
@@ -725,53 +693,6 @@ void VectorDisplayThread::compileDisplay() {
     }
   }
 
-  for (unsigned int j = 0; j < displayMsgs.size(); j++) {
-    const LidarDisplayMsg& displayMsg = displayMsgs[j];
-    unsigned int numLines =
-        min(min(displayMsg.lines_p1x.size(),
-            displayMsg.lines_p1y.size()),
-            min(displayMsg.lines_p2x.size(),
-                displayMsg.lines_p2y.size()));
-    for (unsigned int i = 0; i < numLines; i++) {
-      lines.push_back(VectorDisplay::Line(
-          Vector2f(displayMsg.lines_p1x[i], displayMsg.lines_p1y[i]),
-          Vector2f(displayMsg.lines_p2x[i], displayMsg.lines_p2y[i])));
-      if (i < displayMsg.lines_col.size()) {
-        lineColors.push_back(VectorDisplay::Color(displayMsg.lines_col[i]));
-      }
-    }
-    unsigned int numPoints = min(displayMsg.points_x.size(),
-        displayMsg.points_y.size());
-    for (unsigned int i = 0; i < numPoints; i++) {
-      points.push_back(
-          Vector2f(displayMsg.points_x[i], displayMsg.points_y[i]));
-      if (i < displayMsg.points_col.size())
-        pointColors.push_back(
-            VectorDisplay::Color(displayMsg.points_col[i]));
-    }
-    unsigned int numCircles = min(displayMsg.circles_x.size(),
-        displayMsg.circles_y.size());
-    for (unsigned int i = 0; i < numCircles; i++) {
-      circles.push_back(
-          Vector2f(displayMsg.circles_x[i], displayMsg.circles_y[i]));
-      if (i < displayMsg.circles_col.size())
-        circleColors.push_back(
-            VectorDisplay::Color(displayMsg.circles_col[i]));
-    }
-    for (size_t i = 0; i < displayMsg.text.size(); ++i) {
-      textLocs.push_back(Vector2f(displayMsg.text_x[i], displayMsg.text_y[i]));
-    }
-    for (size_t i = 0; i < displayMsg.text_col.size(); ++i) {
-      textColors.push_back(VectorDisplay::Color(displayMsg.text_col[i]));
-    }
-    textStrings.insert(textStrings.end(), displayMsg.text.begin(),
-                       displayMsg.text.end());
-    textHeights.insert(textHeights.end(), displayMsg.text_height.begin(),
-                       displayMsg.text_height.end());
-    textInWindowCoords.insert(textInWindowCoords.end(),
-                              displayMsg.text_in_window_coords.begin(),
-                              displayMsg.text_in_window_coords.end());
-  }
   if (debug) {
     printf("lines: %d points: %d circles: %d\n",
         static_cast<int>(lines.size()), static_cast<int>(points.size()),
@@ -924,22 +845,20 @@ void VectorDisplayThread::run() {
   } else {
     map_name_ = FLAGS_map;
     vectorMap.Load(MapnameToLocalizationFilename(map_name_));
-    navMap.Load(MapnameToNavigationFilename(map_name_));
+    if (FLAGS_edit_navigation || FLAGS_view_navmap) {
+      navMap.Load(MapnameToNavigationFilename(map_name_));
+    }
 
-    ros::Subscriber guiSub;
     ros::Subscriber laserSub;
     ros::Subscriber kinectScanSub;
     ros::Subscriber localizationSub;
     ros::Subscriber visualizationSub;
 
     laserSub = node_handle_->subscribe(
-        "scan", 1, &VectorDisplayThread::laserCallback, this);
+        FLAGS_laser_topic, 1, &VectorDisplayThread::laserCallback, this);
     localizationSub = node_handle_->subscribe(
-        "localization", 1,
+        FLAGS_localization_topic, 1,
         &VectorDisplayThread::LocalizationCallback, this);
-    guiSub = node_handle_->subscribe(
-        "Cobot/VectorLocalization/Gui", 1,
-        &VectorDisplayThread::displayMsgCallback, this);
     kinectScanSub = node_handle_->subscribe(
         "Cobot/Kinect/Scan", 1,
         &VectorDisplayThread::kinectScanCallback, this);
