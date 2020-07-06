@@ -67,6 +67,10 @@ DEFINE_bool(test, false, "Test mode");
 DEFINE_string(map, "GDC3", "Initial localization map to load");
 DEFINE_double(max_fps, 60.0, "Maximum graphics refresh rate");
 
+DEFINE_string(localization_topic, "/Cobot/Localization", "Topic to listen for localization messages on");
+DEFINE_string(laser_topic, "/Cobot/Laser", "Topic to listen for laser messages on");
+DEFINE_string(visualization_topic, "/Cobot/VectorLocalization/Gui", "Topic to listen for visualization messages on");
+
 string MapnameToLocalizationFilename(const string& map) {
   return StringPrintf("%s/%s/%s.vectormap.txt",
                       FLAGS_maps_dir.c_str(),
@@ -857,7 +861,9 @@ void VectorDisplayThread::run() {
   } else {
     map_name_ = FLAGS_map;
     vectorMap.Load(MapnameToLocalizationFilename(map_name_));
-    navMap.Load(MapnameToNavigationFilename(map_name_));
+    if (FLAGS_edit_navigation || FLAGS_view_navmap) {
+      navMap.Load(MapnameToNavigationFilename(map_name_));
+    }
 
     ros::Subscriber guiSub;
     ros::Subscriber laserSub;
@@ -865,12 +871,12 @@ void VectorDisplayThread::run() {
     ros::Subscriber localizationSub;
 
     laserSub = node_handle_->subscribe(
-        "Cobot/Laser", 1, &VectorDisplayThread::laserCallback, this);
+        FLAGS_laser_topic, 1, &VectorDisplayThread::laserCallback, this);
     localizationSub = node_handle_->subscribe(
-        "Cobot/Localization", 1,
+        FLAGS_localization_topic, 1,
         &VectorDisplayThread::LocalizationCallback, this);
     guiSub = node_handle_->subscribe(
-        "Cobot/VectorLocalization/Gui", 1,
+        FLAGS_visualization_topic, 1,
         &VectorDisplayThread::displayMsgCallback, this);
     kinectScanSub = node_handle_->subscribe(
         "Cobot/Kinect/Scan", 1,
@@ -898,7 +904,7 @@ VectorDisplayThread::VectorDisplayThread(
     node_handle_(node_handle), app(qapp), display(disp) {
   FLAGS_autoswitch_map = true;
   runApp = true;
-  FLAGS_edit_localization = false;
+  // FLAGS_edit_localization = false;
   FLAGS_edit_semantic = false;
   clearDisplay = false;
   tPointCloud = 0.0;
