@@ -45,6 +45,7 @@ using namespace math_util;
 using Eigen::Vector2f;
 using Eigen::Rotation2Df;
 using amrl_msgs::Localization2DMsg;
+using amrl_msgs::VisualizationMsg;
 using vector_display::LidarDisplayMsg;
 using geometry_msgs::PoseWithCovarianceStamped;
 using std::min;
@@ -64,7 +65,7 @@ DEFINE_bool(autoswitch_map, false,
     "Automatically switch maps based on localization");
 DEFINE_bool(live, false, "Live view");
 DEFINE_bool(test, false, "Test mode");
-DEFINE_string(map, "GDC3", "Initial localization map to load");
+DEFINE_string(map, "UT_Campus", "Initial localization map to load");
 DEFINE_double(max_fps, 60.0, "Maximum graphics refresh rate");
 
 string MapnameToLocalizationFilename(const string& map) {
@@ -444,8 +445,10 @@ void VectorDisplayThread::MouseEventCallback(
     const Vector2f& mouse_up, float orientation,
     float viewScale,
     uint32_t modifiers) {
-  static const bool debug = false;
+  static const bool debug = true;
+
   if (FLAGS_edit_localization) {
+    printf("Foo\n");
     editMap(mouse_down, mouse_up, orientation, viewScale, modifiers);
     if (modifiers == 0x01) {
       printf("Length: %f\n", (mouse_down - mouse_up).norm());
@@ -566,8 +569,43 @@ void VectorDisplayThread::filteredPointCloudCallback(
   compileDisplay();
 }
 
+void VectorDisplayThread::visualizationCallback(
+      const ros::MessageEvent<const amrl_msgs::VisualizationMsg>& msgEvent) {
+  static const bool debug = false;
+  const amrl_msgs::VisualizationMsgConstPtr &msg = msgEvent.getConstMessage();
+  bool duplicate = false;
+  unsigned int i = 0;
+  const string source_name =
+      msgEvent.getPublisherName() + ":" + msg->header.frame_id;
+  if (debug) {
+    printf("Received message from %s\n", source_name.c_str());
+  }
+
+  for (; i < displayProviders.size() && !duplicate; i++) {
+    if (displayProviders[i].compare(source_name)== 0)
+      duplicate = true;
+  }
+  if (debug) printf("Duplicate:%d, i:%d\n", duplicate, i);
+  if (duplicate) {
+    i--;
+    visualizationMsgs[i] = *msg;
+  } else {
+    visualizationMsgs.push_back(*msg);
+    displayProviders.push_back(source_name);
+  }
+  compileDisplay();
+}
+
 void VectorDisplayThread::displayMsgCallback(
     const ros::MessageEvent<LidarDisplayMsg const>& msgEvent) {
+  if (true) {
+    static bool displayed = false;
+    if (!displayed) {
+      printf("LidarDisplayMsg disabled!\n");
+      displayed = true;
+    }
+    return;
+  }
   static const bool debug = false;
   const vector_display::LidarDisplayMsgConstPtr &msg = msgEvent.getConstMessage();
   bool duplicate = false;
@@ -632,7 +670,7 @@ void VectorDisplayThread::compileDisplay() {
   static const VectorDisplay::Color LidarPointColor(0xFFF0761F);
   static const VectorDisplay::Color KinectScanColor(0xFFFF0505);
   static const VectorDisplay::Color PointCloudColor(0xFFDE2352);
-  static const bool debug = true;
+  static const bool debug = false;
 
   if (debug) printf("GUI updated!\n");
   if (GetMonotonicTime()-tLast< 1.0 / FLAGS_max_fps) return;
@@ -642,6 +680,7 @@ void VectorDisplayThread::compileDisplay() {
   points.clear();
   circles.clear();
   quads.clear();
+  arcs.clear();
   circleColors.clear();
   lineColors.clear();
   pointColors.clear();
@@ -656,6 +695,34 @@ void VectorDisplayThread::compileDisplay() {
 
   if (FLAGS_edit_navigation || FLAGS_edit_semantic || FLAGS_view_navmap) {
     DrawNavigationMap();
+  }
+
+  const Eigen::Affine2f robot_to_map_tf =
+      Eigen::Translation2f(robotLoc) * Eigen::Rotation2Df(robotAngle);
+  for (const VisualizationMsg& msg : visualizationMsgs) {
+    const Eigen::Affine2f tf = ((msg.header.frame_id == "base_link") ?
+        robot_to_map_tf : Eigen::Affine2f::Identity());
+    const float angle_tf = ((msg.header.frame_id == "base_link") ?
+        robotAngle : 0);
+    for (const amrl_msgs::ColoredLine2D& l : msg.lines) {
+      const Vector2f p0 = tf * Vector2f(l.p0.x, l.p0.y);
+      const Vector2f p1 = tf * Vector2f(l.p1.x, l.p1.y);
+      lines.push_back(VectorDisplay::Line(p0, p1));
+      lineColors.push_back(VectorDisplay::Color(l.color | 0xFF000000ull));
+    }
+    for (const amrl_msgs::ColoredPoint2D& p : msg.points) {
+      const Vector2f p0 = tf * Vector2f(p.point.x, p.point.y);
+      points.push_back(p0);
+      pointColors.push_back(VectorDisplay::Color(p.color | 0xFF000000ull));
+    }
+    for (const amrl_msgs::ColoredArc2D& a : msg.arcs) {
+      arcs.push_back(VectorDisplay::ColoredArc(
+          tf * Vector2f(a.center.x, a.center.y),
+          a.radius,
+          a.start_angle + angle_tf,
+          a.end_angle + angle_tf,
+          VectorDisplay::Color(a.color | 0xFF000000ull)));
+    }
   }
 
   for (unsigned int j = 0; j < displayMsgs.size(); j++) {
@@ -748,8 +815,9 @@ void VectorDisplayThread::compileDisplay() {
       && FLAGS_live) {
     unsigned int i = 0;
     float a = 0.0;
+    // TODO(joydeepb): Load this from a config file.
     const Vector2f laserLoc =
-        Rotation2Df(robotAngle) * Vector2f(0.145, 0.0) + robotLoc;
+        Rotation2Df(robotAngle) * Vector2f(0.05, 0.0) + robotLoc;
     for (i = 0, a = robotAngle + laserScanMsg.angle_min;
         i < laserScanMsg.ranges.size();
         i++, a+= laserScanMsg.angle_increment) {
@@ -764,11 +832,10 @@ void VectorDisplayThread::compileDisplay() {
       pointColors.push_back(LidarPointColor);
     }
   }
-
   display->updateDisplay(
       robotLoc, robotAngle, 100.0, lines, points, circles, quads,
-      lineColors, pointColors, circleColors, quadColors, textLocs, textStrings,
-      textHeights, textColors, textInWindowCoords);
+      lineColors, pointColors, circleColors, quadColors, arcs,
+      textLocs, textStrings, textHeights, textColors, textInWindowCoords);
 }
 
 void VectorDisplayThread::TestMode() {
@@ -863,11 +930,12 @@ void VectorDisplayThread::run() {
     ros::Subscriber laserSub;
     ros::Subscriber kinectScanSub;
     ros::Subscriber localizationSub;
+    ros::Subscriber visualizationSub;
 
     laserSub = node_handle_->subscribe(
-        "Cobot/Laser", 1, &VectorDisplayThread::laserCallback, this);
+        "scan", 1, &VectorDisplayThread::laserCallback, this);
     localizationSub = node_handle_->subscribe(
-        "Cobot/Localization", 1,
+        "localization", 1,
         &VectorDisplayThread::LocalizationCallback, this);
     guiSub = node_handle_->subscribe(
         "Cobot/VectorLocalization/Gui", 1,
@@ -875,6 +943,9 @@ void VectorDisplayThread::run() {
     kinectScanSub = node_handle_->subscribe(
         "Cobot/Kinect/Scan", 1,
         &VectorDisplayThread::kinectScanCallback, this);
+    visualizationSub = node_handle_->subscribe(
+        "visualization", 1,
+        &VectorDisplayThread::visualizationCallback, this);
     compileDisplay();
 
     while (runApp && ros::ok()) {
@@ -896,10 +967,7 @@ VectorDisplayThread::VectorDisplayThread(
   VectorDisplay* disp,
     ros::NodeHandle* node_handle, QApplication* qapp, QObject* parent) :
     node_handle_(node_handle), app(qapp), display(disp) {
-  FLAGS_autoswitch_map = true;
   runApp = true;
-  FLAGS_edit_localization = false;
-  FLAGS_edit_semantic = false;
   clearDisplay = false;
   tPointCloud = 0.0;
   persistentDisplay = false;

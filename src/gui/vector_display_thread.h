@@ -42,6 +42,7 @@
 
 #include "vector_display/LidarDisplayMsg.h"
 #include "amrl_msgs/Localization2DMsg.h"
+#include "amrl_msgs/VisualizationMsg.h"
 #include "gui/vector_display.h"
 #include "vector_map/vector_map.h"
 #include "navigation_map/navigation_map.h"
@@ -80,6 +81,7 @@ private:
   sensor_msgs::LaserScan kinectScanMsg;
   sensor_msgs::PointCloud pointCloudMsg;
   std::vector<vector_display::LidarDisplayMsg> displayMsgs;
+  std::vector<amrl_msgs::VisualizationMsg> visualizationMsgs;
   std::vector<std::string> displayProviders;
   double tLaser, tPointCloud;
 
@@ -87,6 +89,7 @@ private:
   std::vector<Eigen::Vector2f> points;
   std::vector<Eigen::Vector2f> circles;
   std::vector<VectorDisplay::Quad> quads;
+  std::vector<VectorDisplay::ColoredArc> arcs;
   std::vector<VectorDisplay::Color> circleColors;
   std::vector<VectorDisplay::Color> lineColors;
   std::vector<VectorDisplay::Color> pointColors;
@@ -141,6 +144,9 @@ public:
 
   void displayMsgCallback(
       const ros::MessageEvent<const vector_display::LidarDisplayMsg>& msgEvent);
+
+  void visualizationCallback(
+      const ros::MessageEvent<const amrl_msgs::VisualizationMsg>& msgEvent);
 
   void filteredPointCloudCallback(const sensor_msgs::PointCloud& msg);
 

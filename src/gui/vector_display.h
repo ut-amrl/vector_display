@@ -55,6 +55,7 @@ class VectorDisplay : public QGLWidget {
 
   struct Line {
     Eigen::Vector2f p0, p1;
+    Line(float x0, float y0, float x1, float y1) : p0(x0, y0), p1(x1, y1) {}
     Line(const Eigen::Vector2f &_p0, const Eigen::Vector2f &_p1) :
         p0(_p0), p1(_p1) {}
     Line() {}
@@ -70,6 +71,21 @@ class VectorDisplay : public QGLWidget {
     Eigen::Vector2f P1() const { return p1; }
     Eigen::Vector2f P2() const { return p2; }
     Eigen::Vector2f P3() const { return p3; }
+  };
+
+  struct ColoredArc {
+    ColoredArc() {}
+    ColoredArc(const Eigen::Vector2f& c,
+               float r,
+               float a0,
+               float a1,
+               const Color& col) :
+        center(c), radius(r), angle_start(a0), angle_end(a1), color(col) {}
+    Eigen::Vector2f center;
+    float radius;
+    float angle_start;
+    float angle_end;
+    Color color;
   };
 
   enum InteractionMode {
@@ -99,6 +115,7 @@ class VectorDisplay : public QGLWidget {
                   const std::vector<float>& _text_heights,
                   const std::vector<Color>& _text_colors,
                   const std::vector<bool>& _text_in_window_coords);
+  void updateArcs(const std::vector<ColoredArc>& _coloredArcs);
   void updateDisplay(const Eigen::Vector2f& _robotLoc,
                      float _robotAngle,
                      float _displayWindow,
@@ -110,6 +127,7 @@ class VectorDisplay : public QGLWidget {
                      const std::vector<Color>& _pointColors,
                      const std::vector<Color>& _circleColors,
                      const std::vector<Color>& _quadColors,
+                     const std::vector<ColoredArc>& _coloredArcs,
                      const std::vector<Eigen::Vector2f>& _text_locations,
                      const std::vector<std::string>& _text_strings,
                      const std::vector<float>& _text_heights,
@@ -171,6 +189,7 @@ class VectorDisplay : public QGLWidget {
   std::vector<Color> pointColors;
   std::vector<Color> circleColors;
   std::vector<Color> quadColors;
+  std::vector<ColoredArc> coloredArcs;
   std::vector<Eigen::Vector2f> text_locations;
   std::vector<std::string> text_strings;
   std::vector<float> text_heights;
@@ -265,6 +284,7 @@ class VectorDisplay : public QGLWidget {
   void drawLines(float lineThickness);
   void drawPoints(float pointsSize);
   void drawQuads();
+  void drawArcs(float lineThickness);
   void drawTextStrings();
   void drawLine(const Line&line, float lineWidth);
   void drawLine(const Eigen::Vector2f& p0,

@@ -76,7 +76,7 @@ VectorDisplay::VectorDisplay(QWidget* parent) :
   robotLoc = Vector2f(0.0, 0.0);
 
   lineThickness = 1.5;
-  pointsSize = 2.0;
+  pointsSize = 1.0;
 
   viewScale = 100.0 / static_cast<float>(min(width(), height()));
   viewXOffset = viewYOffset = 0.0;
@@ -763,6 +763,7 @@ void VectorDisplay::paintEvent(QPaintEvent* event) {
   drawCircles(lineThickness * viewScale);
   drawPoints(pointsSize * viewScale);
   drawQuads();
+  drawArcs(lineThickness * viewScale);
   drawTextStrings();
 
   if (false) {
@@ -865,6 +866,13 @@ void VectorDisplay::updateText(const vector<Vector2f>& _text_locations,
   RedrawSignal();
 }
 
+void VectorDisplay::updateArcs(const vector<ColoredArc>& arcs) {
+  graphicsMutex.lock();
+  coloredArcs = arcs;
+  graphicsMutex.unlock();
+  RedrawSignal();
+}
+
 void VectorDisplay::updateDisplay(const Vector2f& _robotLoc,
                                   float _robotAngle,
                                   float _displayWindow,
@@ -876,6 +884,7 @@ void VectorDisplay::updateDisplay(const Vector2f& _robotLoc,
                                   const vector<Color>& _pointColors,
                                   const vector<Color>& _circleColors,
                                   const vector<Color>& _quadColors,
+                                  const vector<ColoredArc>& _coloredArcs,
                                   const vector<Vector2f>& _text_locations,
                                   const vector<string>& _text_strings,
                                   const vector<float>& _text_heights,
@@ -885,6 +894,7 @@ void VectorDisplay::updateDisplay(const Vector2f& _robotLoc,
   updatePoints(_points, _pointColors);
   updateCircles(_circles, _circleColors);
   updateQuads(_quads, _quadColors);
+  updateArcs(_coloredArcs);
   updateText(_text_locations,
              _text_strings,
              _text_heights,
@@ -912,6 +922,13 @@ void VectorDisplay::drawQuad(
   glVertex3f(p2.x(), p2.y(), z);
   glVertex3f(p3.x(), p3.y(), z);
   glEnd();
+}
+
+void VectorDisplay::drawArcs(float lineThickness) {
+  for (const ColoredArc& a : coloredArcs) {
+    glColor4f(a.color.r, a.color.g, a.color.b, 1.0);
+    drawArc(a.center, a.radius - lineThickness, a.radius + lineThickness, a.angle_start, a.angle_end);
+  }
 }
 
 void VectorDisplay::drawArc(

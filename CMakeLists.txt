@@ -47,7 +47,7 @@ SET(libs roslib roscpp pthread glut gflags
 INCLUDE_DIRECTORIES(src/shared)
 ADD_SUBDIRECTORY(src/shared)
 
-SET(target localization_gui)
+SET(target vector_display)
 ROSBUILD_ADD_EXECUTABLE(${target}
     src/gui/vector_display_main.cpp
     src/gui/vector_display_thread.cpp
