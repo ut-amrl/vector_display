@@ -450,7 +450,6 @@ void VectorDisplayThread::MouseEventCallback(
   static const bool debug = true;
 
   if (FLAGS_edit_localization) {
-    printf("Foo\n");
     editMap(mouse_down, mouse_up, orientation, viewScale, modifiers);
     if (modifiers == 0x01) {
       printf("Length: %f\n", (mouse_down - mouse_up).norm());
@@ -489,6 +488,16 @@ void VectorDisplayThread::MouseEventCallback(
               mouse_down.x(), mouse_down.y(), RadToDeg(orientation));
         }
         nav_goal_pub_.publish(nav_target_msg_);
+      } break;
+      case 0x01: {
+        // Information
+        printf("Mouse down: %7.3f, %7.3f\n",
+              mouse_down.x(), mouse_down.y());
+        printf("Mouse up: %7.3f, %7.3f\n",
+              mouse_up.x(), mouse_up.y());
+        printf("Length: %7.3f Angle: %7.4f (%7.3f\u00b0)\n",
+              (mouse_down - mouse_up).norm(), orientation,
+              RadToDeg(orientation));
       } break;
     }
   }
