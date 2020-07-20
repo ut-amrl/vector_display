@@ -87,7 +87,6 @@ VectorDisplay::VectorDisplay(QWidget* parent) :
   followRobot = false;
   showRobot = true;
   rubberband_valid = false;
-  enableDrawing = true;
 
   interaction_mode = kInteractionAuto;
 
@@ -104,7 +103,7 @@ void VectorDisplay::EnableDrawing(bool enable) {
 
 void VectorDisplay::RedrawSlot() {
   graphicsMutex.lock();
-  if (enableDrawing) this->update();
+  this->update();
   graphicsMutex.unlock();
 }
 
@@ -250,7 +249,6 @@ void VectorDisplay::wheelEvent(QWheelEvent* event) {
 
 bool VectorDisplay::CaptureSlot(const std::string& filename) {
   RedrawSlot();
-  paintGL();
   QImage image = this->grabFrameBuffer();
   return image.save(filename.c_str());
 }

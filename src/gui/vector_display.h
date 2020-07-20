@@ -198,7 +198,6 @@ class VectorDisplay : public QGLWidget {
   Eigen::Vector2f rubberband_start;
   Eigen::Vector2f rubberband_end;
   bool rubberband_valid;
-  bool enableDrawing;
 
   float lineThickness;
   float pointsSize;
