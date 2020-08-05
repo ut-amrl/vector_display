@@ -305,7 +305,7 @@ struct GraphDomain {
     neighbors.clear();
     auto drawmap = [&]() {
       printf("Map:\n======\n");
-      for (const State s : states) {
+      for (const State& s : states) {
         printf("%4lu: %8.3f,%8.3f", s.id, s.loc.x(), s.loc.y());
         CHECK_GT(neighbors.size(), s.id);
         for (const uint64_t n : neighbors[s.id]) {
@@ -316,6 +316,7 @@ struct GraphDomain {
       printf("Map:\n======\n");
     };
     while (valid &&
+        !feof(fid()) &&
         fscanf(fid(), "%lu, %f, %f, %d", &id, &x, &y, &num_neighbors) == 4) {
       GrowIfNeeded(id);
       states[id] = State(id, x, y);
