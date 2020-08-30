@@ -915,7 +915,7 @@ VectorDisplayThread::VectorDisplayThread(
   localizationInitMsg.header.seq = 0;
   initialPosePublisher = node_handle_->advertise<amrl_msgs::Localization2DMsg>(
       "initialpose", 5, false);
-  nav_goal_pub_ = node_handle_->advertise<geometry_msgs::PoseStamped>(
+  nav_goal_pub_ = node_handle_->advertise<amrl_msgs::Pose2Df>(
       "/move_base_simple/goal", 10);
 }
 
