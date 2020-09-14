@@ -339,6 +339,28 @@ void ShrinkLine(float distance, Line2f* line) {
 }
 
 void VectorMap::Cleanup() {
+  // Check for and remove parallel overlapping lines
+  for (size_t i = 0; i < lines.size(); ++i) {
+    Line2f& l1 = lines[i];
+    for (size_t j = i+1; i < lines.size(); ++j) {
+      Line2f& l2 = lines[j];
+      // Check if parallel and overlapping
+      if(IsParallel(l1, l2) && l2.Intersects(l1)) {
+        // Search for longest line between all pairs of points
+        Line2f new_line;
+        const vector<Vector2f> p1 = {l1.p0, l1.p1, l2.p0, l2.p1};
+        const vector<Vector2f> p2 = {l1.p1, l2.p0, l2.p1, l1.p0};
+        for(size_t k = 0; k < p1.size(); ++k) {
+          Line2f l(p1[k], p2[k]);
+          if(new_line.SqLength() < l.SqLength()) {
+            new_line = l;
+          }
+        }
+        l1 = new_line;
+        lines.erase(lines.begin() + j);
+      }
+    }
+  }
   const float kShrinkDistance = 1e-4;
   // const float kMinLineLength = 2.0 * kShrinkDistance;
   const float kMinLineLength = 0.05;
