@@ -345,7 +345,7 @@ void VectorMap::Cleanup() {
     for (size_t j = i+1; i < lines.size(); ++j) {
       Line2f& l2 = lines[j];
       // Check if parallel and overlapping
-      if(IsParallel(l1, l2) && l2.Intersects(l1)) {
+      if(geometry::IsParallel(l1.Dir(), l2.Dir()) && l2.Intersects(l1)) {
         // Search for longest line between all pairs of points
         Line2f new_line;
         const vector<Vector2f> p1 = {l1.p0, l1.p1, l2.p0, l2.p1};
