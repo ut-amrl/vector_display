@@ -341,8 +341,10 @@ void ShrinkLine(float distance, Line2f* line) {
 void VectorMap::Cleanup() {
   // Check for and remove parallel overlapping lines
   for (size_t i = 0; i < lines.size(); ++i) {
+    __attribute__((unused))
     Line2f& l1 = lines[i];
-    for (size_t j = i+1; i < lines.size(); ++j) {
+    for (size_t j = i+1; j < lines.size(); ++j) {
+      __attribute__((unused))
       Line2f& l2 = lines[j];
       // Check if parallel and overlapping
       if(geometry::IsParallel(l1.Dir(), l2.Dir()) && l2.Intersects(l1)) {
