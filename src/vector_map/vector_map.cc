@@ -360,6 +360,8 @@ void VectorMap::Cleanup() {
         // Overwrite the first line, pop the second line
         l1 = new_line;
         new_lines.erase(new_lines.begin() + j);
+        // Decrease J because we just popped a line, so this j needs to be checked again
+        --j;
       }
     }
   }
