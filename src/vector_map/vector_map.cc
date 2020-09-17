@@ -340,14 +340,14 @@ void ShrinkLine(float distance, Line2f* line) {
 
 void VectorMap::Cleanup() {
   // Check for and remove parallel overlapping lines
-  for (size_t i = 0; i < lines.size(); ++i) {
-    __attribute__((unused))
-    Line2f& l1 = lines[i];
-    for (size_t j = i+1; j < lines.size(); ++j) {
-      __attribute__((unused))
-      Line2f& l2 = lines[j];
-      // Check if parallel and overlapping
+  vector<Line2f> new_lines = lines;
+  for (size_t i = 0; i < new_lines.size(); ++i) {
+    Line2f& l1 = new_lines[i];
+    for (size_t j = i+1; j < new_lines.size(); ++j) {
+      Line2f& l2 = new_lines[j];
+      // Check if and overlapping
       if(l1.Overlaps(l2)) {
+        // Find the pair of points that produces the longest line
         Line2f new_line;
         const vector<Vector2f> p1 = {l1.p0, l1.p1, l2.p0, l2.p1};
         const vector<Vector2f> p2 = {l1.p1, l2.p0, l2.p1, l1.p0};
@@ -357,15 +357,17 @@ void VectorMap::Cleanup() {
             new_line = l;
           }
         }
+        // Overwrite the first line, pop the second line
         l1 = new_line;
-        lines.erase(lines.begin() + j);
+        new_lines.erase(new_lines.begin() + j);
       }
     }
   }
+  lines = new_lines;
   const float kShrinkDistance = 1e-4;
   // const float kMinLineLength = 2.0 * kShrinkDistance;
   const float kMinLineLength = 0.05;
-  vector<Line2f> new_lines;
+  new_lines.clear();
   for (size_t i = 0; i < lines.size(); ++i) {
     const Line2f& l1 = lines[i];
     if (l1.Length() < kMinLineLength) continue;
