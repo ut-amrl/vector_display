@@ -312,20 +312,30 @@ void VectorDisplayThread::editGraph(
 
   // Check if the mouse down location was near a vertex.
   const uint64_t nearest_vertex_down = navMap.GetClosestVertex(p0);
-  const float down_vertex_dist =
-      (navMap.KeyToState(nearest_vertex_down).loc - p0).norm();
-  const bool down_on_vertex =
-      nearest_vertex_down < navMap.states.size() &&
-      down_vertex_dist < kMaxError;
+
+  float down_vertex_dist;
+  bool down_on_vertex;
+  if (nearest_vertex_down < navMap.states.size()) {
+    down_vertex_dist = (navMap.KeyToState(nearest_vertex_down).loc - p0).norm();
+    down_on_vertex = down_vertex_dist < kMaxError;
+  } else {
+    down_on_vertex = false;
+    down_vertex_dist = FLT_MAX;
+  }
 
   // Check if the mouse up location was near a vertex.
   const uint64_t nearest_vertex_up = navMap.GetClosestVertex(p1);
-  const float up_vertex_dist =
+  float up_vertex_dist;
+  bool up_on_vertex;
+  if (nearest_vertex_up < navMap.states.size()) {
+    up_vertex_dist =
       (navMap.KeyToState(nearest_vertex_up).loc - p1).norm();
-  const bool up_on_vertex =
-      nearest_vertex_up < navMap.states.size() &&
-      up_vertex_dist < kMaxError;
-
+    up_on_vertex = up_vertex_dist < kMaxError;
+  } else {
+    up_on_vertex = false;
+    up_vertex_dist = FLT_MAX;
+  }
+  
   const bool click = ((p0 - p1).norm() < kMaxError);
 
   vector<string> semantic_vertex_types;
