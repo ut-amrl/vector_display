@@ -65,7 +65,7 @@ When creating a new localization map, the suggested procedure is to create a new
 
 To see an example navigation graph, try running `vector_display` with `edit_navigation` set to true while pointing to a map with an existing navigation graph, such as `UT_Campus`.
 
-When editing a navigation graph, you will see the localization map as well, for reference. `Shift+Click` will create a new node. `Shift + Click + Drag` between any two nodes to create an edge between them. `Ctrl + Click` on a node or edge to delete it.
+When editing a navigation graph, you will see the localization map as well, for reference. `Shift+Click` will create a new node. `Shift + Click + Drag` between any two nodes to create an edge between them. `Ctrl + Click` on a node or edge to delete it. `Alt + Drag` will move an edge or node.
 
 #### Note
 When creating a new navigation map for an existing localization map, you must first run, from the maps directory `touch (map)/(map).navigation.txt` to create an empty navigation map file.
