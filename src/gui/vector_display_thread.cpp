@@ -480,11 +480,20 @@ void VectorDisplayThread::MouseEventCallback(
         set_pose_msg.pose.x = mouse_down.x();
         set_pose_msg.pose.y = mouse_down.y();
         set_pose_msg.pose.theta = orientation;
+
+        //added by mk
+        init_pose_msg.header.stamp = ros::Time::now();
+        init_pose_msg.pose.position.x = mouse_down.x();
+        init_pose_msg.pose.position.y = mouse_down.y();
+        init_pose_msg.pose.orientation.w = cos(0.5f * orientation);
+        init_pose_msg.pose.orientation.z = sin(0.5f * orientation);
+
         if (debug) {
           printf("SetPosition: %7.3f, %7.3f %6.1f\u00b0\n",
               mouse_down.x(), mouse_down.y(), RadToDeg(orientation));
         }
         initialPosePublisher.publish(set_pose_msg);
+        initialPosePublisher_gp.publish(init_pose_msg);
       } break;
       case 0x02: {
         // Set Target
@@ -911,10 +920,13 @@ VectorDisplayThread::VectorDisplayThread(
   persistentDisplay = false;
   tLaser = 0.0;
   ros_helpers::InitRosHeader("map", &set_pose_msg.header);
-  ros_helpers::InitRosHeader("map", &nav_target_msg_.header);
+  ros_helpers::InitRosHeader("map", &init_pose_msg.header);
+  ros_helpers::InitRosHeader("map_en", &nav_target_msg_.header);
   localizationInitMsg.header.seq = 0;
   initialPosePublisher = node_handle_->advertise<amrl_msgs::Localization2DMsg>(
       "initialpose", 5, false);
+  initialPosePublisher_gp = node_handle_->advertise<geometry_msgs::PoseStamped>(
+      "initialpose_gp", 5, false);
   nav_goal_pub_ = node_handle_->advertise<geometry_msgs::PoseStamped>(
       "/move_base_simple/goal", 10);
 }

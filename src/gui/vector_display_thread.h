@@ -62,9 +62,11 @@ private:
 
   geometry_msgs::PoseWithCovarianceStamped localizationInitMsg;
   ros::Publisher initialPosePublisher;
+  ros::Publisher initialPosePublisher_gp;
   ros::Publisher nav_goal_pub_;
 
   amrl_msgs::Localization2DMsg set_pose_msg;
+  geometry_msgs::PoseStamped init_pose_msg; //added_by_MK
   geometry_msgs::PoseStamped nav_target_msg_;
 
   QApplication* app;
