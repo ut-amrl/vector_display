@@ -629,18 +629,6 @@ void VectorDisplayThread::DrawNavigationMap() {
     Vector2f v = navMap.states[i].loc;
     points.push_back(v);
     pointColors.push_back(VectorDisplay::Color(0xFF008800));
-    if (FLAGS_edit_semantic) {
-      textStrings.push_back(std::to_string(navMap.states[i].id));
-      textLocs.push_back(v);
-      textColors.push_back(roomLabel);
-      textHeights.push_back(0.5);
-      const Vector2f p0(navMap.states[i].loc);
-      Rotation2Df heading = Rotation2Df(navMap.states[i].theta);
-      const Vector2f halfUnit = Vector2f(0.5, 0);
-      const Vector2f p1(navMap.states[i].loc + heading*halfUnit);
-      lines.push_back(VectorDisplay::Line(p0, p1));
-      lineColors.push_back(VectorDisplay::Color(0x7F404040));
-    }
   }
   for(unsigned int i=0; i<navMap.neighbors.size(); i++) {
     for(unsigned int j=0; j < navMap.neighbors[i].size(); j++) {
@@ -648,6 +636,9 @@ void VectorDisplayThread::DrawNavigationMap() {
                                           navMap.states[navMap.neighbors[i][j]].loc));
       lineColors.push_back(VectorDisplay::Color(0xFFFF00FF));
     }
+  }
+  if (FLAGS_edit_semantic) {
+    // TODO: Draw Semantic map
   }
 }
 

@@ -51,10 +51,8 @@ struct GraphDomain {
   struct State {
     uint64_t id;
     Eigen::Vector2f loc;
-    float theta;
-    State(uint64_t id, float x, float y) : id(id), loc(x, y), theta(0.0f) {}
-    State(uint64_t id, const Eigen::Vector2f loc) : id(id), loc(loc), theta(0.0f) {}
-    State(uint64_t id, const Eigen::Vector2f loc, float theta) : id(id), loc(loc), theta(theta) {}
+    State(uint64_t id, float x, float y) : id(id), loc(x, y) {}
+    State(uint64_t id, const Eigen::Vector2f loc) : id(id), loc(loc) {}
     State() {}
   };
 
@@ -251,6 +249,9 @@ struct GraphDomain {
     // Add p1 : pmid
     AddUndirectedEdge(p1_id, pmid_id);
 
+    // Delete p0 : p1, since there is a p0 : pmid : p1 pathway now.
+    DeleteUndirectedEdge(p0_id, p1_id);
+
     // Add pmid : v
     const uint64_t v_id = AddState(v);
     AddUndirectedEdge(pmid_id, v_id);
@@ -274,9 +275,6 @@ struct GraphDomain {
       fputs(line.str().c_str(), fid());
     }
     return true;
-
-    fprintf(stderr, "Saving nav map not implemented.\n");
-    return true;
   }
 
   uint64_t GetClosestVertex(const Eigen::Vector2f& p) {
@@ -293,7 +291,6 @@ struct GraphDomain {
 
   void Load(const std::string& file) {
     static const bool kDebug = true;
-
     ScopedFile fid(file, "r", true);
     CHECK_NOTNULL(fid());
     bool valid = true;
@@ -316,8 +313,8 @@ struct GraphDomain {
       printf("Map:\n======\n");
     };
     while (valid &&
-        !feof(fid()) &&
-        fscanf(fid(), "%lu, %f, %f, %d", &id, &x, &y, &num_neighbors) == 4) {
+          !feof(fid()) &&
+          fscanf(fid(), "%lu, %f, %f, %d", &id, &x, &y, &num_neighbors) == 4) {
       GrowIfNeeded(id);
       states[id] = State(id, x, y);
       if (kDebug) {
