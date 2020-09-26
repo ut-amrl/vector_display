@@ -203,24 +203,24 @@ void VectorDisplayThread::ChangeMap() {
       }
     }
     if (FLAGS_edit_localization) {
-      if (vectorMap.Save(localization_map_file)) {
-        printf("Saved map %s\n", map_name_.c_str());
+      if (vectorMap.Save(MapnameToLocalizationFilename(map_name_))) {
+        printf("Saved vector map %s\n", map_name_.c_str());
       } else {
-        printf("Error saving map %s\n", map_name_.c_str());
+        printf("Error saving vector map %s\n", map_name_.c_str());
         return;
       }
     }
     if (FLAGS_edit_navigation) {
-      if (navMap.Save(navigation_map_file)) {
+      if (navMap.SaveV2(MapnameToNavigationFilename(map_name_))) {
         printf("Saved navigation map %s\n", map_name_.c_str());
       } else {
         printf("Error saving navigation map %s\n", map_name_.c_str());
         return;
       }
-      navMap.Load(navigation_map_file);
+      navMap.LoadV2(navigation_map_file);
     }
     if (FLAGS_view_navmap) {
-      navMap.Load(navigation_map_file);
+      navMap.LoadV2(navigation_map_file);
     }
     printf("Change map to %s\n", map_name.toStdString().c_str());
     vectorMap.Load(localization_map_file);
@@ -366,8 +366,6 @@ void VectorDisplayThread::editGraph(
           string roomType;
           string roomLabel;
           if (GetSemanticTypeAndLabel(semantic_vertex_types, &roomType, &roomLabel)) {
-            // navMap.AddVertex(navMap.GetNextVertexIndex(), p0.x, p0.y, angle,
-            //                  roomType, roomLabel);
             printf("TODO: Semantic map editing\n");
           }
         }
@@ -376,14 +374,11 @@ void VectorDisplayThread::editGraph(
         // using default values for width, max_speed, and has_door
         if (FLAGS_edit_navigation) {
           float width = 1;
-          float max_speed = 1;
+          float max_speed = 10;
           bool has_door = false;
           if (GetNavEdgeParams(&width, &max_speed, &has_door)) {
-            printf("TODO: Save edge params width:%f speed:%f door:%d\n",
-                  width,
-                  max_speed,
-                  has_door);
-            navMap.AddUndirectedEdge(nearest_vertex_down, nearest_vertex_up);
+            navMap.AddUndirectedEdge(
+                nearest_vertex_down, nearest_vertex_up, max_speed, width);
           }
         } else if (FLAGS_edit_semantic) {
           string edgeType;
@@ -549,7 +544,7 @@ void VectorDisplayThread::LocalizationCallback(const Localization2DMsg& msg) {
         printf("Error saving navigation map %s\n", map_name_.c_str());
         return;
       }
-      navMap.Load(navigation_map_file);
+      navMap.LoadV2(navigation_map_file);
     }
     if (FLAGS_edit_semantic) {
       // if (navMap.SaveSemanticMap(map_name_)) {
@@ -562,7 +557,7 @@ void VectorDisplayThread::LocalizationCallback(const Localization2DMsg& msg) {
       printf("TODO: Semantic map editing\n");
     }
     if (FLAGS_view_navmap) {
-      navMap.Load(navigation_map_file);
+      navMap.LoadV2(navigation_map_file);
     }
 
     vectorMap.Load(localization_map_file);
@@ -856,7 +851,7 @@ void VectorDisplayThread::run() {
     map_name_ = FLAGS_map;
     vectorMap.Load(MapnameToLocalizationFilename(map_name_));
     if (FLAGS_edit_navigation || FLAGS_view_navmap) {
-      navMap.Load(MapnameToNavigationFilename(map_name_));
+      navMap.LoadV2(MapnameToNavigationFilename(map_name_));
     }
 
     ros::Subscriber laserSub;
@@ -923,7 +918,7 @@ VectorDisplayThread::~VectorDisplayThread() {
     }
   }
   if (FLAGS_edit_navigation) {
-    if (navMap.Save(navigation_map_file)) {
+    if (navMap.SaveV2(navigation_map_file)) {
       printf("Saved navigation map %s\n", map_name_.c_str());
     } else {
       printf("Error saving navigation map %s\n", map_name_.c_str());

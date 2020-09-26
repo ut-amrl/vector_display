@@ -56,3 +56,7 @@ ROSBUILD_ADD_EXECUTABLE(${target}
     src/vector_map/vector_map.cc
     ${VECTOR_DISPLAY_MOC_SRCS})
 TARGET_LINK_LIBRARIES(${target} ${libs} ${QT_LIBRARIES})
+
+ADD_EXECUTABLE(map_upgrade
+    src/navigation_map/map_upgrade.cc)
+TARGET_LINK_LIBRARIES(map_upgrade gflags glog)
