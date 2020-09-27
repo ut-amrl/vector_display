@@ -211,6 +211,14 @@ struct GraphDomain {
         }
       }
     }
+    // This edge must exist, hence the list can't be empty.
+    CHECK_GT(static_edges.size(), 0);
+    for (int i = static_edges.size() - 1; i >= 0; --i) {
+      if (static_edges[i].s0_id == s0 && 
+          static_edges[i].s1_id == s1) {
+        static_edges.erase(static_edges.begin() + i);
+      }
+    }
   }
 
   bool NeighborExists(const std::vector<uint64_t>& neighbors,
@@ -366,19 +374,29 @@ struct GraphDomain {
     static const float kMaxClearance = 10.0;
 
     ScopedFile fid(file, "w", true);
-    uint64_t num_edges = 0;
-    for (const State& s : states) {
-      num_edges += neighbors[s.id].size();
+
+    std::vector<std::pair<uint64_t, uint64_t>> unique_edges;
+    for(uint64_t i = 0; i < neighbors.size(); i++) {
+      for (uint64_t j : neighbors[i]) {
+        const auto e1 = std::make_pair(i, j);
+        const auto e2 = std::make_pair(j, i);
+        if (std::find(unique_edges.begin(), unique_edges.end(), e1) ==
+            unique_edges.end() && 
+            std::find(unique_edges.begin(), unique_edges.end(), e2) ==
+            unique_edges.end()) {
+          unique_edges.push_back(e1);
+        }
+      }
     }
+
     fprintf(fid(), "%lu\n", states.size());
-    fprintf(fid(), "%lu\n", num_edges);
+    fprintf(fid(), "%lu\n", unique_edges.size());
     for (const State& s : states) {
       fprintf(fid(), "%lu, %f, %f\n", s.id, s.loc.x(), s.loc.y());
     }
-    for(uint64_t i = 0; i < neighbors.size(); i++) {
-      for (uint64_t j : neighbors[i]) {
-        fprintf(fid(), "%lu, %lu, %f, %f\n", i, j, kMaxSpeed, kMaxClearance);
-      }
+    for (const std::pair<uint64_t, uint64_t> e : unique_edges) {
+      fprintf(fid(), "%lu, %lu, %f, %f\n", 
+          e.first, e.second, kMaxSpeed, kMaxClearance);
     }
     return true;
   }
@@ -451,6 +469,35 @@ struct GraphDomain {
     static_states = states;
     static_neighbors = neighbors;
     if (kDebug) drawmap();
+  }
+
+  void GetClearanceAndSpeedFromLoc(const Eigen::Vector2f& p, 
+                                   float* clearance, 
+                                   float* speed) const {
+    if (static_edges.empty()) return;
+    float min_dist = FLT_MAX;
+    NavigationEdge closest_edge = static_edges[0];
+    for (const NavigationEdge& e : static_edges) {
+      const float dist = e.edge.Distance(p);
+      if (dist < min_dist) {
+        closest_edge = e;
+        min_dist = dist;
+      }
+    }
+    printf("Closest (%.3f,%.3f): %lu (%.3f,%.3f) : %lu (%.3f,%.3f) %f %f \n",
+           p.x(),
+           p.y(),
+           closest_edge.s0_id,
+           closest_edge.edge.p0.x(),
+           closest_edge.edge.p0.y(),
+           closest_edge.s1_id,
+           closest_edge.edge.p1.x(),
+           closest_edge.edge.p1.y(),
+           closest_edge.max_clearance,
+           closest_edge.max_speed);
+
+    if (clearance) *clearance = closest_edge.max_clearance;
+    if (speed) *speed = closest_edge.max_speed;
   }
 
   std::vector<State> states;
