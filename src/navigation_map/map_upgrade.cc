@@ -38,10 +38,9 @@ int main(int argc, char* argv[]) {
   CHECK(!FLAGS_out.empty());
 
   GraphDomain map;
-  map.Load(FLAGS_in);
-  map.SaveV2FromV1(FLAGS_out);
+  map.SaveV2FromV1(FLAGS_in, FLAGS_out);
 
   printf("Verifying...\n");
-  map.LoadV2(FLAGS_out);
+  map.Load(FLAGS_out);
   return 0;
 }

@@ -78,14 +78,14 @@ string MapnameToLocalizationFilename(const string& map) {
 }
 
 string MapnameToNavigationFilename(const string& map) {
-  return StringPrintf("%s/%s/%s.navigation.txt",
+  return StringPrintf("%s/%s/%s.navigation.json",
                       FLAGS_maps_dir.c_str(),
                       map.c_str(),
                       map.c_str());
 }
 
-string MapnameToNavigationFilenameV2(const string& map) {
-  return StringPrintf("%s/%s/%s.navigation.json",
+string MapnameToNavigationFilenameTxt(const string& map) {
+  return StringPrintf("%s/%s/%s.navigation.txt",
                       FLAGS_maps_dir.c_str(),
                       map.c_str(),
                       map.c_str());
@@ -206,7 +206,7 @@ void VectorDisplayThread::ChangeMap() {
     const string localization_map_file =
         MapnameToLocalizationFilename(map_name.toStdString());
     const string navigation_map_file =
-        MapnameToNavigationFilenameV2(map_name.toStdString());
+        MapnameToNavigationFilename(map_name.toStdString());
     if (FLAGS_autoswitch_map && localization_map_file != vectorMap.file_name) {
       QMessageBox confirmBox;
       confirmBox.setWindowTitle("Confirm");
@@ -230,16 +230,16 @@ void VectorDisplayThread::ChangeMap() {
       }
     }
     if (FLAGS_edit_navigation) {
-      if (navMap.SaveV2(MapnameToNavigationFilenameV2(map_name_))) {
+      if (navMap.Save(MapnameToNavigationFilename(map_name_))) {
         printf("Saved navigation map %s\n", map_name_.c_str());
       } else {
         printf("Error saving navigation map %s\n", map_name_.c_str());
         return;
       }
-      navMap.LoadV2(navigation_map_file);
+      navMap.Load(navigation_map_file);
     }
     if (FLAGS_view_navmap) {
-      navMap.LoadV2(navigation_map_file);
+      navMap.Load(navigation_map_file);
     }
     printf("Change map to %s\n", map_name.toStdString().c_str());
     vectorMap.Load(localization_map_file);
@@ -321,13 +321,9 @@ void VectorDisplayThread::editGraph(
   static const float kMaxError = 4.0f * viewScale;
 
   // Check if an edge was selected.
-  uint64_t edge_p0(0), edge_p1(0);
-  const float nearest_edge_dist =
-      navMap.GetClosestEdge(p0, &edge_p0, &edge_p1);
-  const bool down_on_edge =
-      edge_p0 < navMap.states.size() &&
-      edge_p1 < navMap.states.size() &&
-      nearest_edge_dist < kMaxError;
+  navigation::GraphDomain::NavigationEdge closest_edge;
+  float nearest_edge_dist = navMap.GetClosestEdge(p0, closest_edge);
+  const bool down_on_edge = nearest_edge_dist < kMaxError;
 
   // Check if the mouse down location was near a vertex.
   const uint64_t nearest_vertex_down = navMap.GetClosestVertex(p0);
@@ -417,7 +413,7 @@ void VectorDisplayThread::editGraph(
       if (click && down_on_vertex) {
         navMap.DeleteState(nearest_vertex_down);
       } else if (click && down_on_edge) {
-        navMap.DeleteUndirectedEdge(edge_p0, edge_p1);
+        navMap.DeleteUndirectedEdge(closest_edge.s0_id, closest_edge.s1_id);
       } else {
         return;
       }
@@ -431,8 +427,8 @@ void VectorDisplayThread::editGraph(
         navMap.KeyToState(nearest_vertex_down).loc = p1;
       } else if (down_on_edge) {
         Vector2f shift = p1 - p0;
-        navMap.states[edge_p0].loc += shift;
-        navMap.states[edge_p1].loc += shift;
+        navMap.states[closest_edge.s0_id].loc += shift;
+        navMap.states[closest_edge.s1_id].loc += shift;
       } else {
         return;
       }
@@ -548,7 +544,7 @@ void VectorDisplayThread::LocalizationCallback(const Localization2DMsg& msg) {
   const string localization_map_file =
       MapnameToLocalizationFilename(msg.map);
   const string navigation_map_file =
-      MapnameToNavigationFilenameV2(msg.map);
+      MapnameToNavigationFilename(msg.map);
   if (FLAGS_autoswitch_map && map_name_ != msg.map) {
     if (FLAGS_edit_localization) {
       if (vectorMap.Save(localization_map_file)) {
@@ -565,7 +561,7 @@ void VectorDisplayThread::LocalizationCallback(const Localization2DMsg& msg) {
         printf("Error saving navigation map %s\n", map_name_.c_str());
         return;
       }
-      navMap.LoadV2(navigation_map_file);
+      navMap.Load(navigation_map_file);
     }
     if (FLAGS_edit_semantic) {
       // if (navMap.SaveSemanticMap(map_name_)) {
@@ -578,7 +574,7 @@ void VectorDisplayThread::LocalizationCallback(const Localization2DMsg& msg) {
       printf("TODO: Semantic map editing\n");
     }
     if (FLAGS_view_navmap) {
-      navMap.LoadV2(navigation_map_file);
+      navMap.Load(navigation_map_file);
     }
 
     vectorMap.Load(localization_map_file);
@@ -646,12 +642,9 @@ void VectorDisplayThread::DrawNavigationMap() {
     points.push_back(v);
     pointColors.push_back(VectorDisplay::Color(0xFF008800));
   }
-  for(unsigned int i=0; i<navMap.neighbors.size(); i++) {
-    for(unsigned int j=0; j < navMap.neighbors[i].size(); j++) {
-      lines.push_back(VectorDisplay::Line(navMap.states[i].loc,
-                                          navMap.states[navMap.neighbors[i][j]].loc));
-      lineColors.push_back(VectorDisplay::Color(0xFFFF00FF));
-    }
+  for(unsigned int i=0; i < navMap.edges.size(); ++i) {
+    lines.push_back(VectorDisplay::Line(navMap.edges[i].edge.p0, navMap.edges[i].edge.p1));
+    lineColors.push_back(VectorDisplay::Color(0xFFFF00FF));
   }
   if (FLAGS_edit_semantic) {
     // TODO: Draw Semantic map
@@ -872,7 +865,17 @@ void VectorDisplayThread::run() {
     map_name_ = FLAGS_map;
     vectorMap.Load(MapnameToLocalizationFilename(map_name_));
     if (FLAGS_edit_navigation || FLAGS_view_navmap) {
-      navMap.LoadV2(MapnameToNavigationFilenameV2(map_name_));
+      std::string nav_map_file = MapnameToNavigationFilename(map_name_);
+      std::string old_nav_map_file = MapnameToNavigationFilenameTxt(map_name_);
+      if (!FileExists(nav_map_file) && FileExists(old_nav_map_file)) {
+        printf("Could not find navigation file at %s. An V1 nav-map was found at %s. Please run map_upgrade to upgrade this map.\n", nav_map_file.c_str(), old_nav_map_file.c_str());
+        exit(1);
+      } else if (!FileExists(nav_map_file)) {
+        printf("Could not find navigation file at %s.\n", nav_map_file.c_str());
+        exit(1);
+      } else {
+        navMap.Load(nav_map_file);
+      }
     }
 
     ros::Subscriber laserSub;
@@ -930,16 +933,16 @@ VectorDisplayThread::~VectorDisplayThread() {
   const string localization_map_file =
       MapnameToLocalizationFilename(map_name_);
   const string navigation_map_file =
-      MapnameToNavigationFilenameV2(map_name_);
-  if (FLAGS_edit_localization) {
+      MapnameToNavigationFilename(map_name_);
+  if (FLAGS_edit_localization && vectorMap.lines.size() > 0) {
     if (vectorMap.Save(localization_map_file)) {
       printf("Saved map %s\n", map_name_.c_str());
     } else {
       printf("Error saving map %s\n", map_name_.c_str());
     }
   }
-  if (FLAGS_edit_navigation) {
-    if (navMap.SaveV2(navigation_map_file)) {
+  if (FLAGS_edit_navigation && navMap.states.size() > 0) {
+    if (navMap.Save(navigation_map_file)) {
       printf("Saved navigation map %s\n", map_name_.c_str());
     } else {
       printf("Error saving navigation map %s\n", map_name_.c_str());
