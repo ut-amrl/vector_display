@@ -28,6 +28,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <fstream>
 
 // Library headers.
 #include "eigen3/Eigen/Dense"
@@ -44,6 +45,9 @@
 #include "util/helpers.h"
 #include "vector_map/vector_map.h"
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 #ifndef GRAPH_DOMAIN_H
 #define GRAPH_DOMAIN_H
 
@@ -56,6 +60,21 @@ struct GraphDomain {
     State(uint64_t id, float x, float y) : id(id), loc(x, y) {}
     State(uint64_t id, const Eigen::Vector2f loc) : id(id), loc(loc) {}
     State() {}
+
+    json toJSON() const {
+      json data;
+      data["id"] = id;
+      data["loc"]["x"] = loc.x();
+      data["loc"]["y"] = loc.y();
+      return data;
+    }
+
+    static State fromJSON(const json& j) {
+      State s;
+      s.id = j["id"].get<uint64_t>();
+      s.loc = Eigen::Vector2f(j["loc"]["x"].get<float>(), j["loc"]["y"].get<float>());
+      return s;
+    }
   };
 
   // V2 Map Edge structure.
@@ -65,6 +84,36 @@ struct GraphDomain {
     uint64_t s1_id;
     float max_speed;
     float max_clearance;
+    bool has_door;
+    bool has_stairs;
+
+    json toJSON() const {
+      json data;
+      data["s0_id"] = s0_id;
+      data["s1_id"] = s1_id;
+      data["max_speed"] = max_speed;
+      data["max_clearance"] = max_clearance;
+      data["has_door"] = has_door;
+      data["has_stairs"] = has_stairs;
+      // no need to save the edge, it's redundant data that can be recovered at load time
+      return data;
+    }
+
+    // Constructing a navigation edge from JSON assumes you already know the states that exist in the world
+    static NavigationEdge fromJSON(const json& j, const std::vector<State>& states) {
+      NavigationEdge e;
+      e.s0_id = j["s0_id"].get<uint64_t>();
+      e.s1_id = j["s1_id"].get<uint64_t>();
+      e.max_speed = j["max_speed"].get<float>();
+      e.max_clearance = j["max_clearance"].get<float>();
+
+      e.has_door = j["has_door"].get<bool>();
+      e.has_stairs = j["has_stairs"].get<bool>();
+
+      e.edge.p0 = states[e.s0_id].loc;
+      e.edge.p1 = states[e.s1_id].loc;
+      return e;
+    }
   };
 
 
@@ -177,6 +226,22 @@ struct GraphDomain {
 
   void DeleteState(const uint64_t s_id) {
     // Delete all edges that touch this state.
+    for (size_t i = 0; i < static_edges.size(); ++i) {
+      if (static_edges[i].s0_id == s_id || static_edges[i].s1_id == s_id) {
+        static_edges.erase(static_edges.begin() + i);
+        --i;
+      } else {
+        if (static_edges[i].s0_id > s_id) {
+          // Renumber static_edges after this state.
+          --static_edges[i].s0_id;
+        }
+        if (static_edges[i].s1_id > s_id) {
+          // Renumber static_edges after this state.
+          --static_edges[i].s1_id;
+        }
+      }
+    }
+    // delete all entries for this state in other adjacency rows
     for (std::vector<uint64_t>& n : neighbors) {
       for (size_t i = 0; i < n.size(); ++i) {
         if (n[i] == s_id) {
@@ -188,6 +253,7 @@ struct GraphDomain {
         }
       }
     }
+    
     // Remove the adjacency row for this state.
     neighbors.erase(neighbors.begin() + s_id);
     // Remove this state.
@@ -214,8 +280,10 @@ struct GraphDomain {
     // This edge must exist, hence the list can't be empty.
     CHECK_GT(static_edges.size(), 0);
     for (int i = static_edges.size() - 1; i >= 0; --i) {
-      if (static_edges[i].s0_id == s0 && 
-          static_edges[i].s1_id == s1) {
+      if ((static_edges[i].s0_id == s0 && 
+          static_edges[i].s1_id == s1) || (static_edges[i].s1_id == s0 && 
+          static_edges[i].s0_id == s1)) {
+            printf("DELETING\n");
         static_edges.erase(static_edges.begin() + i);
       }
     }
@@ -226,6 +294,7 @@ struct GraphDomain {
     return (std::find(neighbors.begin(), neighbors.end(), s)
         != neighbors.end());
   }
+
   void AddDirectedEdge(const uint64_t s0, const uint64_t s1) {
     GrowIfNeeded(s0);
     GrowIfNeeded(s1);
@@ -237,7 +306,9 @@ struct GraphDomain {
   void AddUndirectedEdge(const uint64_t s0, 
                          const uint64_t s1,
                          const float max_speed,
-                         const float max_clearance) {
+                         const float max_clearance,
+                         const bool has_door,
+                         const bool has_stairs) {
     CHECK_LT(s0, states.size());
     CHECK_LT(s1, states.size());
     CHECK_LT(s0, neighbors.size());
@@ -255,7 +326,25 @@ struct GraphDomain {
     e.max_clearance = max_clearance;
     e.edge.p0 = states[s0].loc;
     e.edge.p1 = states[s1].loc;
+    e.has_door = has_door;
+    e.has_stairs = has_stairs;
     static_edges.push_back(e);
+  }
+
+  void AddUndirectedEdge(const json& edge) {
+    uint64_t s0 = edge["s0_id"].get<uint64_t>();
+    uint64_t s1 = edge["s1_id"].get<uint64_t>();
+    CHECK_LT(s0, states.size());
+    CHECK_LT(s1, states.size());
+    CHECK_LT(s0, neighbors.size());
+    CHECK_LT(s1, neighbors.size());
+    if (!NeighborExists(neighbors[s0], s1)) {
+      neighbors[s0].push_back(s1);
+    }
+    if (!NeighborExists(neighbors[s1], s0)) {
+      neighbors[s1].push_back(s0);
+    }
+    static_edges.push_back(NavigationEdge::fromJSON(edge, states));
   }
 
   void AddUndirectedEdge(const uint64_t s0, const uint64_t s1) {
@@ -323,46 +412,76 @@ struct GraphDomain {
 
   // Save a V2 Map from V2 map structures.
   bool SaveV2(const std::string& file) {
-    ScopedFile fid(file, "w", true);
-    fprintf(fid(), "%lu\n", static_states.size());
-    fprintf(fid(), "%lu\n", static_edges.size());
-    for (const State& s : static_states) {
-      fprintf(fid(), "%lu, %f, %f\n", s.id, s.loc.x(), s.loc.y());
+    json j;
+    std::vector<json> state_jsons;
+    for (const State& s: states) {
+      state_jsons.push_back(s.toJSON());
     }
-    for(const NavigationEdge& e : static_edges) {
-      fprintf(fid(), "%lu, %lu, %f, %f\n", 
-          e.s0_id, e.s1_id, e.max_speed, e.max_clearance);
+    j["nodes"] = state_jsons;
+
+
+    std::vector<json> edge_jsons;
+    for (const NavigationEdge& e: static_edges) {
+      edge_jsons.push_back(e.toJSON());
     }
+    j["edges"] = edge_jsons;
+
+    std::ofstream o(file);
+    o << std::setw(4) << j << std::endl;
+    o.close();
     return true;
   }
 
+  void DrawMap() {
+    printf("Map:\n======\n");
+    for (const State& s : static_states) {
+      printf("%lu: %8.3f,%8.3f", s.id, s.loc.x(), s.loc.y());
+      CHECK_GT(static_neighbors.size(), s.id);
+      for (const uint64_t n : static_neighbors[s.id]) {
+        printf(" %4lu", n);
+      }
+      printf("\n");
+    }
+    printf("======\n");
+  };
+
   // Load from a V2 map file.
   bool LoadV2(const std::string& file) {
-    ScopedFile fid(file, "r", true);
-    CHECK_NOTNULL(fid());
-    printf("Loading %s\n", file.c_str());
-    uint64_t num_states = 0, num_edges = 0;
-    CHECK_EQ(fscanf(fid(), "%lu", &num_states), 1);
-    CHECK_EQ(fscanf(fid(), "%lu", &num_edges), 1);
-    states.resize(num_states);
+    static const bool kDebug = true;
+    std::ifstream i(file);
+    json j;
+    i >> j;
+    i.close();
+    
+    CHECK(j["nodes"].is_array());
+    auto const states_json = j["nodes"];
+
+    states.clear();
+    states.resize(states_json.size());
     neighbors.clear();
-    neighbors.resize(num_states);
-    for (State& s : states) {
-      CHECK_EQ(fscanf(fid(), "%lu, %f, %f", 
-          &(s.id), &(s.loc.x()), &(s.loc.y())), 3);
+    neighbors.resize(states_json.size());
+    static_edges.clear();
+    
+    for(const json& j : states_json) {
+      State s = State::fromJSON(j);
+      states[s.id] = s;    
     }
-    for (uint64_t i = 0; i < num_edges; ++i) {
-      uint64_t s0 = 0, s1 = 0;
-      float max_speed = 0, max_clearance = 0;
-      CHECK_EQ(fscanf(fid(), "%lu, %lu, %f, %f", 
-          &(s0), &(s1), &(max_speed), &(max_clearance)), 4);
-      AddUndirectedEdge(s0, s1, max_speed, max_clearance);
+
+    CHECK(j["edges"].is_array());
+    auto const edges_json = j["edges"];
+
+    for(const json& j : edges_json) {
+      AddUndirectedEdge(j);
     }
-    printf("Loaded %s with %lu vertices, %lu edges\n", 
-        file.c_str(), num_states, num_edges);
+    
+    printf("Loaded %s with %lu states, %lu edges\n",
+            file.c_str(),
+            states.size(),
+            static_edges.size());
 
     static_states = states;
     static_neighbors = neighbors;
+    if (kDebug) DrawMap();
     return true;
   }
 
@@ -424,18 +543,6 @@ struct GraphDomain {
     int num_edges = 0;
     states.clear();
     neighbors.clear();
-    auto drawmap = [&]() {
-      printf("Map:\n======\n");
-      for (const State& s : states) {
-        printf("%4lu: %8.3f,%8.3f", s.id, s.loc.x(), s.loc.y());
-        CHECK_GT(neighbors.size(), s.id);
-        for (const uint64_t n : neighbors[s.id]) {
-          printf(" %4lu", n);
-        }
-        printf("\n");
-      }
-      printf("======\n");
-    };
     while (valid &&
           !feof(fid()) &&
           fscanf(fid(), "%lu, %f, %f, %d", &id, &x, &y, &num_neighbors) == 4) {
@@ -468,7 +575,7 @@ struct GraphDomain {
             num_edges);
     static_states = states;
     static_neighbors = neighbors;
-    if (kDebug) drawmap();
+    if (kDebug) DrawMap();
   }
 
   void GetClearanceAndSpeedFromLoc(const Eigen::Vector2f& p, 

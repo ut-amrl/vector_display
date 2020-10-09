@@ -84,6 +84,14 @@ string MapnameToNavigationFilename(const string& map) {
                       map.c_str());
 }
 
+string MapnameToNavigationFilenameV2(const string& map) {
+  return StringPrintf("%s/%s/%s.navigation.json",
+                      FLAGS_maps_dir.c_str(),
+                      map.c_str(),
+                      map.c_str());
+}
+
+
 bool VectorDisplayThread::GetSemanticType(
     const vector<string>& types,
     string* selected_type) {
@@ -128,7 +136,8 @@ bool VectorDisplayThread::GetSemanticTypeAndLabel(
 bool VectorDisplayThread::GetNavEdgeParams(
     float* width,
     float* max_speed,
-    bool* has_door) {
+    bool* has_door,
+    bool* has_stairs) {
   bool ok = false;
   *width = QInputDialog::getDouble(
       display,
@@ -162,6 +171,16 @@ bool VectorDisplayThread::GetNavEdgeParams(
       false,
       &ok).toStdString();
   *has_door = (has_door_str == "True");
+
+  const string has_stairs_str = QInputDialog::getItem(
+      display,
+      tr("Has Stairs"),
+      tr("Has Stairs:"),
+      bool_types,
+      ((*has_stairs) ? 0 : 1),
+      false,
+      &ok).toStdString();
+  *has_stairs = (has_stairs_str == "True");
   return ok;
 }
 
@@ -187,7 +206,7 @@ void VectorDisplayThread::ChangeMap() {
     const string localization_map_file =
         MapnameToLocalizationFilename(map_name.toStdString());
     const string navigation_map_file =
-        MapnameToNavigationFilename(map_name.toStdString());
+        MapnameToNavigationFilenameV2(map_name.toStdString());
     if (FLAGS_autoswitch_map && localization_map_file != vectorMap.file_name) {
       QMessageBox confirmBox;
       confirmBox.setWindowTitle("Confirm");
@@ -211,7 +230,7 @@ void VectorDisplayThread::ChangeMap() {
       }
     }
     if (FLAGS_edit_navigation) {
-      if (navMap.SaveV2(MapnameToNavigationFilename(map_name_))) {
+      if (navMap.SaveV2(MapnameToNavigationFilenameV2(map_name_))) {
         printf("Saved navigation map %s\n", map_name_.c_str());
       } else {
         printf("Error saving navigation map %s\n", map_name_.c_str());
@@ -376,9 +395,10 @@ void VectorDisplayThread::editGraph(
           float width = 1;
           float max_speed = 10;
           bool has_door = false;
-          if (GetNavEdgeParams(&width, &max_speed, &has_door)) {
+          bool has_stairs = false;
+          if (GetNavEdgeParams(&width, &max_speed, &has_door, &has_stairs)) {
             navMap.AddUndirectedEdge(
-                nearest_vertex_down, nearest_vertex_up, max_speed, width);
+                nearest_vertex_down, nearest_vertex_up, max_speed, width, has_door, has_stairs);
           }
         } else if (FLAGS_edit_semantic) {
           string edgeType;
@@ -432,7 +452,8 @@ void VectorDisplayThread::editGraph(
           float width = 0;
           float max_speed = 0;
           bool has_door = false;
-          if (GetNavEdgeParams(&width, &max_speed, &has_door)) {
+          bool has_stairs = false;
+          if (GetNavEdgeParams(&width, &max_speed, &has_door, &has_stairs)) {
             printf("TODO: Semantic map editing\n");
           }
         } else if (FLAGS_edit_semantic) {
@@ -527,7 +548,7 @@ void VectorDisplayThread::LocalizationCallback(const Localization2DMsg& msg) {
   const string localization_map_file =
       MapnameToLocalizationFilename(msg.map);
   const string navigation_map_file =
-      MapnameToNavigationFilename(msg.map);
+      MapnameToNavigationFilenameV2(msg.map);
   if (FLAGS_autoswitch_map && map_name_ != msg.map) {
     if (FLAGS_edit_localization) {
       if (vectorMap.Save(localization_map_file)) {
@@ -851,7 +872,7 @@ void VectorDisplayThread::run() {
     map_name_ = FLAGS_map;
     vectorMap.Load(MapnameToLocalizationFilename(map_name_));
     if (FLAGS_edit_navigation || FLAGS_view_navmap) {
-      navMap.LoadV2(MapnameToNavigationFilename(map_name_));
+      navMap.LoadV2(MapnameToNavigationFilenameV2(map_name_));
     }
 
     ros::Subscriber laserSub;
@@ -909,7 +930,7 @@ VectorDisplayThread::~VectorDisplayThread() {
   const string localization_map_file =
       MapnameToLocalizationFilename(map_name_);
   const string navigation_map_file =
-      MapnameToNavigationFilename(map_name_);
+      MapnameToNavigationFilenameV2(map_name_);
   if (FLAGS_edit_localization) {
     if (vectorMap.Save(localization_map_file)) {
       printf("Saved map %s\n", map_name_.c_str());
