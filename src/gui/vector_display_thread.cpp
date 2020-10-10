@@ -322,30 +322,33 @@ void VectorDisplayThread::editGraph(
 
   // Check if an edge was selected.
   navigation::GraphDomain::NavigationEdge closest_edge;
-  float nearest_edge_dist = navMap.GetClosestEdge(p0, closest_edge);
-  const bool down_on_edge = nearest_edge_dist < kMaxError;
+  float nearest_edge_dist = FLT_MAX;
+  bool found_edge = navMap.GetClosestEdge(p0, closest_edge, &nearest_edge_dist);
+  const bool down_on_edge = found_edge && nearest_edge_dist < kMaxError;
 
   // Check if the mouse down location was near a vertex.
-  const uint64_t nearest_vertex_down = navMap.GetClosestVertex(p0);
+  uint64_t nearest_vertex_down = 0;
+  bool found_down_state = navMap.GetClosestState(p0, &nearest_vertex_down);
 
   float down_vertex_dist;
   bool down_on_vertex;
   if (nearest_vertex_down < navMap.states.size()) {
     down_vertex_dist = (navMap.KeyToState(nearest_vertex_down).loc - p0).norm();
-    down_on_vertex = down_vertex_dist < kMaxError;
+    down_on_vertex = found_down_state && down_vertex_dist < kMaxError;
   } else {
     down_on_vertex = false;
     down_vertex_dist = FLT_MAX;
   }
 
   // Check if the mouse up location was near a vertex.
-  const uint64_t nearest_vertex_up = navMap.GetClosestVertex(p1);
+  uint64_t nearest_vertex_up = 0;
+  bool found_up_state = navMap.GetClosestState(p1, &nearest_vertex_up);
   float up_vertex_dist;
   bool up_on_vertex;
   if (nearest_vertex_up < navMap.states.size()) {
     up_vertex_dist =
       (navMap.KeyToState(nearest_vertex_up).loc - p1).norm();
-    up_on_vertex = up_vertex_dist < kMaxError;
+    up_on_vertex = found_up_state && up_vertex_dist < kMaxError;
   } else {
     up_on_vertex = false;
     up_vertex_dist = FLT_MAX;
