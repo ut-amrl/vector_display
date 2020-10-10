@@ -13,11 +13,13 @@
 //  If not, see <http://www.gnu.org/licenses/>.
 //========================================================================
 /*!
-\file    graph_domain.h
+\file    navigation_map.h
 \brief   Domain definition for A* planner to use graphs loaded from files.
 \author  Joydeep Biswas, (C) 2019
 */
 //========================================================================
+
+// NOTE: This file is an exact copy of `src/navigation/graph_domain.h` in `https://github.com/ut-amrl/graph_navigation`. This should be kept in sync.
 
 // C headers.
 #include <inttypes.h>
@@ -217,22 +219,16 @@ struct GraphDomain {
 
   void DeleteState(const uint64_t s_id) {
     // Delete all edges that touch this state.
-    for (size_t i = 0; i < edges.size(); ++i) {
+    for (int i = edges.size() - 1; i >= 0; --i) {
       if (edges[i].s0_id == s_id || edges[i].s1_id == s_id) {
         edges.erase(edges.begin() + i);
-        --i;
-      } else {
-        if (edges[i].s0_id > s_id) {
-          // Renumber edges after this state.
-          --edges[i].s0_id;
-        }
-        if (edges[i].s1_id > s_id) {
-          // Renumber edges after this state.
-          --edges[i].s1_id;
-        }
       }
     }
-    
+    // Renumber state IDs in the edges list.
+    for (NavigationEdge& e : edges) {
+      if (e.s0_id > s_id) --e.s0_id;
+      if (e.s1_id > s_id) --e.s1_id;
+    }
     // Remove this state.
     for (size_t i = 0; i < states.size(); ++i) {
       if (states[i].id == s_id) {
