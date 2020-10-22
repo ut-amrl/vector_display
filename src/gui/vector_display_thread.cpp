@@ -77,7 +77,7 @@ string MapnameToLocalizationFilename(const string& map) {
                       map.c_str());
 }
 
-string MapnameToNavigationFilename(const string& map) {
+string MapnameToNavigationFilenameJson(const string& map) {
   return StringPrintf("%s/%s/%s.navigation.json",
                       FLAGS_maps_dir.c_str(),
                       map.c_str(),
@@ -206,7 +206,7 @@ void VectorDisplayThread::ChangeMap() {
     const string localization_map_file =
         MapnameToLocalizationFilename(map_name.toStdString());
     const string navigation_map_file =
-        MapnameToNavigationFilename(map_name.toStdString());
+        MapnameToNavigationFilenameJson(map_name.toStdString());
     if (FLAGS_autoswitch_map && localization_map_file != vectorMap.file_name) {
       QMessageBox confirmBox;
       confirmBox.setWindowTitle("Confirm");
@@ -230,7 +230,7 @@ void VectorDisplayThread::ChangeMap() {
       }
     }
     if (FLAGS_edit_navigation) {
-      if (navMap.Save(MapnameToNavigationFilename(map_name_))) {
+      if (navMap.Save(MapnameToNavigationFilenameJson(map_name_))) {
         printf("Saved navigation map %s\n", map_name_.c_str());
       } else {
         printf("Error saving navigation map %s\n", map_name_.c_str());
@@ -323,7 +323,7 @@ void VectorDisplayThread::editGraph(
   // Check if an edge was selected.
   navigation::GraphDomain::NavigationEdge closest_edge;
   float nearest_edge_dist = FLT_MAX;
-  bool found_edge = navMap.GetClosestEdge(p0, closest_edge, &nearest_edge_dist);
+  bool found_edge = navMap.GetClosestEdge(p0, &closest_edge, &nearest_edge_dist);
   const bool down_on_edge = found_edge && nearest_edge_dist < kMaxError;
 
   // Check if the mouse down location was near a vertex.
@@ -547,7 +547,7 @@ void VectorDisplayThread::LocalizationCallback(const Localization2DMsg& msg) {
   const string localization_map_file =
       MapnameToLocalizationFilename(msg.map);
   const string navigation_map_file =
-      MapnameToNavigationFilename(msg.map);
+      MapnameToNavigationFilenameJson(msg.map);
   if (FLAGS_autoswitch_map && map_name_ != msg.map) {
     if (FLAGS_edit_localization) {
       if (vectorMap.Save(localization_map_file)) {
@@ -868,7 +868,7 @@ void VectorDisplayThread::run() {
     map_name_ = FLAGS_map;
     vectorMap.Load(MapnameToLocalizationFilename(map_name_));
     if (FLAGS_edit_navigation || FLAGS_view_navmap) {
-      std::string nav_map_file = MapnameToNavigationFilename(map_name_);
+      std::string nav_map_file = MapnameToNavigationFilenameJson(map_name_);
       std::string old_nav_map_file = MapnameToNavigationFilenameTxt(map_name_);
       if (!FileExists(nav_map_file) && FileExists(old_nav_map_file)) {
         printf("Could not find navigation file at %s. An V1 nav-map was found at %s. Please run map_upgrade to upgrade this map.\n", nav_map_file.c_str(), old_nav_map_file.c_str());
@@ -936,7 +936,7 @@ VectorDisplayThread::~VectorDisplayThread() {
   const string localization_map_file =
       MapnameToLocalizationFilename(map_name_);
   const string navigation_map_file =
-      MapnameToNavigationFilename(map_name_);
+      MapnameToNavigationFilenameJson(map_name_);
   if (FLAGS_edit_localization && vectorMap.lines.size() > 0) {
     if (vectorMap.Save(localization_map_file)) {
       printf("Saved map %s\n", map_name_.c_str());
