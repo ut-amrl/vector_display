@@ -108,7 +108,8 @@ public:
   bool GetNavEdgeParams(
       float* width,
       float* max_speed,
-      bool* has_door);
+      bool* has_door,
+      bool* has_stairs);
 
   bool GetSemanticType(
       const std::vector<std::string>& types,
