@@ -88,6 +88,8 @@ struct GraphDomain {
     float max_clearance = 10.0f;
     bool has_door;
     bool has_stairs;
+    bool has_automated_door = false;
+    bool has_elevator = false;
 
     json toJSON() const {
       json data;
@@ -97,6 +99,8 @@ struct GraphDomain {
       data["max_clearance"] = max_clearance;
       data["has_door"] = has_door;
       data["has_stairs"] = has_stairs;
+      data["has_elevator"] = has_elevator;
+      data["has_automated_door"] = has_automated_door;
       // no need to save the edge, it's redundant data that can be recovered at load time
       return data;
     }
@@ -111,7 +115,12 @@ struct GraphDomain {
 
       e.has_door = j["has_door"].get<bool>();
       e.has_stairs = j["has_stairs"].get<bool>();
-
+      if(j.contains("has_elevator")){
+	      e.has_elevator = j["has_elevator"].get<bool>();
+      }
+      if(j.contains("has_automated_door")){
+      	      e.has_automated_door = j["has_automated_door"].get<bool>();
+      }
       e.edge.p0 = states[e.s0_id].loc;
       e.edge.p1 = states[e.s1_id].loc;
       return e;
@@ -258,7 +267,9 @@ struct GraphDomain {
                          const float max_speed,
                          const float max_clearance,
                          const bool has_door,
-                         const bool has_stairs) {
+                         const bool has_stairs, 
+			 const bool has_elevator, 
+			 const bool has_automated_door) {
     CHECK_LT(s0, states.size());
     CHECK_LT(s1, states.size());
     NavigationEdge e;
@@ -270,6 +281,8 @@ struct GraphDomain {
     e.edge.p1 = states[s1].loc;
     e.has_door = has_door;
     e.has_stairs = has_stairs;
+    e.has_elevator = has_elevator;
+    e.has_automated_door = has_automated_door;
     edges.push_back(e);
   }
 
@@ -292,6 +305,8 @@ struct GraphDomain {
     e.edge.p1 = states[s1].loc;
     e.has_door = false;
     e.has_stairs = false;
+    e.has_automated_door = false;
+    e.has_elevator = false;
     edges.push_back(e);
   }
 
@@ -313,17 +328,17 @@ struct GraphDomain {
     const uint64_t pmid_id = AddState(pmid);
     const uint64_t p0_id = closest_edge.s0_id;
     const uint64_t p1_id = closest_edge.s1_id;
-    AddUndirectedEdge(p0_id, pmid_id, closest_edge.max_speed, closest_edge.max_clearance, false, false);
+    AddUndirectedEdge(p0_id, pmid_id, closest_edge.max_speed, closest_edge.max_clearance, false, false, false, false);
 
     // Add p1 : pmid
-    AddUndirectedEdge(p1_id, pmid_id, closest_edge.max_speed, closest_edge.max_clearance, false, false);
+    AddUndirectedEdge(p1_id, pmid_id, closest_edge.max_speed, closest_edge.max_clearance, false, false, false, false);
 
     // Delete p0 : p1, since there is a p0 : pmid : p1 pathway now.
     DeleteUndirectedEdge(p0_id, p1_id);
 
     // Add pmid : v
     const uint64_t v_id = AddState(v);
-    AddUndirectedEdge(pmid_id, v_id, closest_edge.max_speed, closest_edge.max_clearance, false, false);
+    AddUndirectedEdge(pmid_id, v_id, closest_edge.max_speed, closest_edge.max_clearance, false, false, false, false);
 
     if (kDebug) {
       printf("Adding dynamic state %f,%f (%lu) %lu %lu %lu\n",

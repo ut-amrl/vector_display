@@ -137,7 +137,9 @@ bool VectorDisplayThread::GetNavEdgeParams(
     float* width,
     float* max_speed,
     bool* has_door,
-    bool* has_stairs) {
+    bool* has_stairs, 
+    bool* has_elevator, 
+    bool* has_automated_door) {
   bool ok = false;
   *width = QInputDialog::getDouble(
       display,
@@ -181,6 +183,27 @@ bool VectorDisplayThread::GetNavEdgeParams(
       false,
       &ok).toStdString();
   *has_stairs = (has_stairs_str == "True");
+
+  const string has_elevator_str = QInputDialog::getItem(
+      display,
+      tr("Has Elevator"),
+      tr("Has Elevator:"),
+      bool_types,
+      ((*has_elevator) ? 0 : 1),
+      false,
+      &ok).toStdString();
+  *has_elevator = (has_elevator_str == "True");
+
+
+  const string has_automated_door_str = QInputDialog::getItem(
+      display,
+      tr("Has Automated Door"),
+      tr("Has Automated Door:"),
+      bool_types,
+      ((*has_automated_door) ? 0 : 1),
+      false,
+      &ok).toStdString();
+  *has_automated_door = (has_automated_door_str == "True");
   return ok;
 }
 
@@ -395,9 +418,11 @@ void VectorDisplayThread::editGraph(
           float max_speed = 10;
           bool has_door = false;
           bool has_stairs = false;
-          if (GetNavEdgeParams(&width, &max_speed, &has_door, &has_stairs)) {
+	  bool has_elevator = false;
+	  bool has_automated_door = false;
+          if (GetNavEdgeParams(&width, &max_speed, &has_door, &has_stairs, &has_elevator, &has_automated_door)) {
             navMap.AddUndirectedEdge(
-                nearest_vertex_down, nearest_vertex_up, max_speed, width, has_door, has_stairs);
+                nearest_vertex_down, nearest_vertex_up, max_speed, width, has_door, has_stairs, has_elevator, has_automated_door);
           }
         } else if (FLAGS_edit_semantic) {
           string edgeType;
@@ -452,7 +477,9 @@ void VectorDisplayThread::editGraph(
           float max_speed = 0;
           bool has_door = false;
           bool has_stairs = false;
-          if (GetNavEdgeParams(&width, &max_speed, &has_door, &has_stairs)) {
+	  bool has_elevator = false;
+	  bool has_automated_door = false;
+          if (GetNavEdgeParams(&width, &max_speed, &has_door, &has_stairs, &has_elevator, &has_automated_door)) {
             printf("TODO: Semantic map editing\n");
           }
         } else if (FLAGS_edit_semantic) {
