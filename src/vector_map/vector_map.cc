@@ -381,7 +381,7 @@ void VectorMap::Load(const string& file) {
     lines.push_back(Line2f(Vector2f(x1, y1), Vector2f(x2, y2)));
   }
   fclose(fid);
-  Cleanup();
+//  Cleanup();
   printf("Loaded vector map %s with %d lines\n", file.c_str(), int(lines.size()));
   file_name = file;
 }

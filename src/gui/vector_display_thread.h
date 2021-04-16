@@ -109,7 +109,9 @@ public:
       float* width,
       float* max_speed,
       bool* has_door,
-      bool* has_stairs);
+      bool* has_stairs, 
+      bool* has_elevator, 
+      bool* has_automated_door);
 
   bool GetSemanticType(
       const std::vector<std::string>& types,
