@@ -45,6 +45,7 @@ Run `./bin/vector_display`
  - `--map` Initial localization map to load. This should be the name of one of the folders in `maps_dir`, as we look for a map at: `(maps_dir)/(map)/(map).vectormap.txt`
  - `--edit_localization` can be set to true to edit localization map (see below)
  - `--edit_navigation` can be set to true to edit navigation map (see below)
+ 
  ...Additional flags can be discovered by running `./bin/vector_display --help` (the block about flags from `vector_display_thread.cpp` are the most useful).
 
 
