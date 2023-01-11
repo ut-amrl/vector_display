@@ -25,6 +25,7 @@ For installation instructions for ROS, please consult the [ROS Installation Wiki
     (Replace `MYDIRECTORY` with the actual directory)
     You can also add this to your `~/.bashrc` file so that you don't have to do
     this every time you open a new terminal.
+1. run `git submodule update --init --recursive` to pull submodules
 1. Build the program:
     ```
     make
