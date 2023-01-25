@@ -78,7 +78,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG L_PREV_USR=rosdev
 # TODO: You might want to use a strong password here
 ARG L_PREV_PWD=12345
-ARG ROS_WS=/home/${L_PREV_USR}/src
+ARG ROS_WS=/home/${L_PREV_USR}/vector_display
 
 # Adding a low-privilege user for CLion to SSH
 RUN groupadd -r ${L_PREV_USR}
@@ -96,8 +96,8 @@ SHELL ["/bin/bash", "-c"]
 RUN apt-get install ros-noetic-roslint
 
 
-COPY ./src/amrl_msgs ./amrl_msgs
-RUN source /home/rosdev/set_paths.sh && cd amrl_msgs && make
+COPY ./src/amrl_msgs src/amrl_msgs
+RUN source /home/rosdev/set_paths.sh && cd src/amrl_msgs && make
 
 
 RUN source /home/rosdev/set_paths.sh && rosdep update

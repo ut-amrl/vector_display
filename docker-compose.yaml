@@ -19,9 +19,13 @@ services:
     cap_add:
       - SYS_PTRACE  # For debugging purposes
     environment:
-      ROS_MASTER_URI: http://rosmaster:11311
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: 1
+      XAUTHORITY: /tmp/.docker.xauth
+      ROS_MASTER_URI: http://vector_display_rosmaster:11311
     volumes:
-      - src:/home/rosdev/src:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - src:/home/rosdev/vector_display:rw
     ports:
       - "4444:22"
     depends_on:
@@ -36,4 +40,5 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: ./src
+      device: ./
+
