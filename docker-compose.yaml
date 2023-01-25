@@ -1,0 +1,39 @@
+version: "2.3"
+
+services:
+  vector_display_rosmaster:
+    # In charge of Roscore, all services should use http://rosmaster:11311 as the ROS_MASTER_URI
+
+    container_name: vector_display_rosmaster
+    image: ros:noetic
+    command: roscore
+    tty: true
+    ports:
+      - "11311:11311"
+
+  vector_display:
+    build:
+      context: ./
+      dockerfile: docker/Dockerfile
+    tty: true
+    cap_add:
+      - SYS_PTRACE  # For debugging purposes
+    environment:
+      ROS_MASTER_URI: http://rosmaster:11311
+    volumes:
+      - src:/home/rosdev/src:rw
+    ports:
+      - "4444:22"
+    depends_on:
+      - vector_display_rosmaster
+
+
+
+
+volumes:
+  src:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./src

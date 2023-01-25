@@ -36,9 +36,6 @@ RUN cp z3-4.8.9-x64-ubuntu-16.04/include/* /usr/include
 
 # Make QT connect to the monitor and X11 software (Not all of this may be needed, things were added iteratively until
 # it worked.
-RUN yes | pip3 uninstall opencv-python opencv_contrib_python
-RUN pip3 install opencv_contrib_python==3.4.14.51
-RUN pip3 install opencv_python==4.5.5.64
 
 ENV NVIDIA_VISIBLE_DEVICES \
     ${NVIDIA_VISIBLE_DEVICES:-all}
@@ -59,8 +56,6 @@ ENV QT_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/qt5/plugins
 RUN pip3 install tensorboardX
 
 RUN apt-get update --fix-missing
-RUN apt-get install -y ros-noetic-cv-bridge
-RUN pip3 install opencv-python-headless==4.5.2.52
 RUN pip3 install moviepy
 
 RUN apt-get -y install gdb
@@ -101,6 +96,7 @@ SHELL ["/bin/bash", "-c"]
 RUN apt-get install ros-noetic-roslint
 
 
+COPY ./src/amrl_msgs ./amrl_msgs
 RUN source /home/rosdev/set_paths.sh && cd amrl_msgs && make
 
 
