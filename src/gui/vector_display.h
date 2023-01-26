@@ -119,7 +119,7 @@ class VectorDisplay : public QGLWidget {
   void updateDisplay(const Eigen::Vector2f& _robotLoc,
                      float _robotAngle,
                      float _displayWindow,
-                     const std::vector<Line>& _lines,
+                     const std::vector<Line>& _linestext_in_window_coords,
                      const std::vector<Eigen::Vector2f>& _points,
                      const std::vector<Eigen::Vector2f>& _circles,
                      const std::vector<Quad>& _quads,
@@ -268,7 +268,7 @@ class VectorDisplay : public QGLWidget {
                 const Eigen::Vector2f& p2,
                 const Eigen::Vector2f& p3,
                 float z = -0.1);
-
+  void drawGrid();
   void drawArc(const Eigen::Vector2f& loc,
                float r1, float r2, float theta1, float theta2,
                float z = 0.0, float dTheta = -1);

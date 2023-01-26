@@ -47,6 +47,8 @@ using std::vector;
 const float VectorDisplay::minZValue = -10;
 const float VectorDisplay::maxZValue = 10;
 
+
+
 VectorDisplay::Color::Color(uint32_t col) {
   a = static_cast<float>((col & 0xFF000000ull)>>24)/255.0;
   r = static_cast<float>((col & 0xFF0000ull)>>16)/255.0;
@@ -74,6 +76,8 @@ VectorDisplay::VectorDisplay(QWidget* parent) :
     gl_text(QFont("Courier New")) {
   robotAngle = 0.0;
   robotLoc = Vector2f(0.0, 0.0);
+
+//  parent->graphicsView->scene()->setBackgroundBrush(Qt::CrossPattern);
 
   lineThickness = 1.5;
   pointsSize = 1.0;
@@ -557,6 +561,72 @@ void VectorDisplay::setupViewport() {
   glLoadIdentity();
 }
 
+
+void VectorDisplay::drawGrid() {
+  if (viewScale > 0.25){
+    return;
+  }
+
+//  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+float grid_alpha = std::max(0.0, std::min(0.15, 0.22 - viewScale));
+
+  glColor4f(0.25, 0.25, 0.25, grid_alpha);
+
+  const int window_width = width();
+  const int window_height = height();
+  float xb = -1*viewScale*window_width+viewXOffset;
+  float xe = 1*viewScale*window_width+viewXOffset;
+  float yb = -1*viewScale*window_height+viewYOffset;
+  float ye = 1*viewScale*window_height+viewYOffset;
+
+  std::cout << grid_alpha << endl;
+
+  xb = (int) (xb / 2) * 2 - 4;
+  xe = (int) (xe / 2) * 2 + 4;
+  yb = (int) (yb / 2) * 2 - 4;
+  ye = (int) (ye / 2) * 2 + 4;
+
+  float size = 2.0;
+  float xsize=size,ysize=size;
+
+
+  int xlines = int (xe - xb)/xsize;
+  int ylines = int (ye - yb)/ysize;
+
+  float x_grid_start = xb;
+  float y_grid_start = yb;
+
+  for(int j=0;j<ylines;j++)
+  {
+
+    for(int i=0;i<xlines;i++)
+    {
+      float x_left =  (x_grid_start + (i * xsize) - xsize);
+      float x_right =  (x_grid_start + (i * xsize));
+      float y_up = (y_grid_start + (j * ysize));
+      float y_down = (y_grid_start + (j * ysize) - ysize);
+
+//      lines.push_back(Line(x_left, y_up, x_left, y_down));
+//      lineColors.push_back(Color(0.25, 0.25, 0.25, grid_alpha));
+//      lines.push_back(Line(x_left, y_up, x_right, y_up));
+//      lineColors.push_back(Color(0.25, 0.25, 0.25, grid_alpha));
+      drawLine(Vector2f(x_left, y_up), Vector2f(x_left, y_down), lineThickness*viewScale);
+      drawLine(Vector2f(x_left, y_up), Vector2f(x_right, y_up), lineThickness*viewScale);
+
+//      lines.push_back(Line(x_right, y_up, x_right, y_down));
+//      lineColors.push_back(Color(0.25, 0.25, 0.25, grid_alpha));
+//      glBegin(GL_POLYGON);
+//      glVertex3f(x_right, y_up, 0.0);
+//      glVertex3f(x_left, y_up, 0.0);
+//      glVertex3f(x_left, y_down, 0.0);
+//      glVertex3f(x_right, y_down, 0.0);
+//      glEnd();
+    }
+  }
+
+//  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
 void VectorDisplay::resizeGL(int width, int height) {
   setupViewport();
 }
@@ -757,6 +827,7 @@ void VectorDisplay::paintEvent(QPaintEvent* event) {
     glTranslatef(-(robotLoc.x()), -(robotLoc.y()), 0.0);
   }
 
+  drawGrid();
   drawLines(lineThickness * viewScale);
   drawCircles(lineThickness * viewScale);
   drawPoints(pointsSize * viewScale);
