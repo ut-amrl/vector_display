@@ -80,7 +80,7 @@ VectorDisplay::VectorDisplay(QWidget* parent) :
 //  parent->graphicsView->scene()->setBackgroundBrush(Qt::CrossPattern);
 
   lineThickness = 1.5;
-  pointsSize = 1.0;
+  pointsSize = 4.0;
 
   viewScale = 100.0 / static_cast<float>(min(width(), height()));
   viewXOffset = viewYOffset = 0.0;
@@ -567,8 +567,8 @@ void VectorDisplay::drawGrid() {
     return;
   }
 
-//  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-float grid_alpha = std::max(0.0, std::min(0.15, 0.22 - viewScale));
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  float grid_alpha = std::max(0.0, std::min(0.15, 0.22 - viewScale));
 
   glColor4f(0.25, 0.25, 0.25, grid_alpha);
 
@@ -610,21 +610,19 @@ float grid_alpha = std::max(0.0, std::min(0.15, 0.22 - viewScale));
 //      lineColors.push_back(Color(0.25, 0.25, 0.25, grid_alpha));
 //      lines.push_back(Line(x_left, y_up, x_right, y_up));
 //      lineColors.push_back(Color(0.25, 0.25, 0.25, grid_alpha));
-      drawLine(Vector2f(x_left, y_up), Vector2f(x_left, y_down), lineThickness*viewScale);
-      drawLine(Vector2f(x_left, y_up), Vector2f(x_right, y_up), lineThickness*viewScale);
+//      drawLine(Vector2f(x_left, y_up), Vector2f(x_left, y_down), lineThickness*viewScale);
+//      drawLine(Vector2f(x_left, y_up), Vector2f(x_right, y_up), lineThickness*viewScale);
 
-//      lines.push_back(Line(x_right, y_up, x_right, y_down));
-//      lineColors.push_back(Color(0.25, 0.25, 0.25, grid_alpha));
-//      glBegin(GL_POLYGON);
-//      glVertex3f(x_right, y_up, 0.0);
-//      glVertex3f(x_left, y_up, 0.0);
-//      glVertex3f(x_left, y_down, 0.0);
-//      glVertex3f(x_right, y_down, 0.0);
-//      glEnd();
+      glBegin(GL_POLYGON);
+      glVertex3f(x_right, y_up, 0.0);
+      glVertex3f(x_left, y_up, 0.0);
+      glVertex3f(x_left, y_down, 0.0);
+      glVertex3f(x_right, y_down, 0.0);
+      glEnd();
     }
   }
 
-//  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void VectorDisplay::resizeGL(int width, int height) {

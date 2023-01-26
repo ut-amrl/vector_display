@@ -671,6 +671,10 @@ void VectorDisplayThread::DrawNavigationMap() {
     Vector2f v = navMap.states[i].loc;
     points.push_back(v);
     pointColors.push_back(VectorDisplay::Color(0xFF008800));
+    textStrings.push_back(std::to_string(navMap.states[i].id));
+    textColors.push_back(VectorDisplay::Color(0xFF008800));
+    textLocs.push_back(v);
+    textHeights.push_back(1);
   }
   for(unsigned int i=0; i < navMap.edges.size(); ++i) {
     lines.push_back(VectorDisplay::Line(navMap.edges[i].edge.p0, navMap.edges[i].edge.p1));
