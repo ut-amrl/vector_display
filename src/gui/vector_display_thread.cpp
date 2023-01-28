@@ -341,7 +341,7 @@ void VectorDisplayThread::editGraph(
 
   const Vector2f p0 = mouse_down;
   const Vector2f p1 = mouse_up;
-  static const float kMaxError = 4.0f * viewScale;
+  static const float kMaxError = 8.0f * viewScale;
 
   // Check if an edge was selected.
   navigation::GraphDomain::NavigationEdge closest_edge;
@@ -672,7 +672,7 @@ void VectorDisplayThread::DrawNavigationMap() {
     points.push_back(v);
     pointColors.push_back(VectorDisplay::Color(0xFF008800));
     textStrings.push_back(std::to_string(navMap.states[i].id));
-    textColors.push_back(VectorDisplay::Color(0xFF008800));
+    textColors.push_back(VectorDisplay::Color(0x77008800));
     textLocs.push_back(v);
     textHeights.push_back(1);
   }
