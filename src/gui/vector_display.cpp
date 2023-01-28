@@ -579,7 +579,7 @@ void VectorDisplay::drawGrid() {
   float yb = -1*viewScale*window_height+viewYOffset;
   float ye = 1*viewScale*window_height+viewYOffset;
 
-  std::cout << grid_alpha << endl;
+//  std::cout << grid_alpha << endl;
 
   xb = (int) (xb / 2) * 2 - 4;
   xe = (int) (xe / 2) * 2 + 4;
@@ -592,6 +592,70 @@ void VectorDisplay::drawGrid() {
 
   int xlines = int (xe - xb)/xsize;
   int ylines = int (ye - yb)/ysize;
+
+  float x_grid_start = xb;
+  float y_grid_start = yb;
+
+  for(int j=0;j<ylines;j++)
+  {
+
+    for(int i=0;i<xlines;i++)
+    {
+      float x_left =  (x_grid_start + (i * xsize) - xsize);
+      float x_right =  (x_grid_start + (i * xsize));
+      float y_up = (y_grid_start + (j * ysize));
+      float y_down = (y_grid_start + (j * ysize) - ysize);
+
+//      lines.push_back(Line(x_left, y_up, x_left, y_down));
+//      lineColors.push_back(Color(0.25, 0.25, 0.25, grid_alpha));
+//      lines.push_back(Line(x_left, y_up, x_right, y_up));
+//      lineColors.push_back(Color(0.25, 0.25, 0.25, grid_alpha));
+//      drawLine(Vector2f(x_left, y_up), Vector2f(x_left, y_down), lineThickness*viewScale);
+//      drawLine(Vector2f(x_left, y_up), Vector2f(x_right, y_up), lineThickness*viewScale);
+
+      glBegin(GL_POLYGON);
+      glVertex3f(x_right, y_up, 0.0);
+      glVertex3f(x_left, y_up, 0.0);
+      glVertex3f(x_left, y_down, 0.0);
+      glVertex3f(x_right, y_down, 0.0);
+      glEnd();
+    }
+  }
+
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void VectorDisplay::microDrawGrid() {
+  if (viewScale > 0.05){
+    return;
+  }
+
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  float grid_alpha = std::max(0.0, std::min(0.08, 0.15 - viewScale));
+
+  glColor4f(0.15, 0.15, 0.15, grid_alpha);
+
+  const int window_width = width();
+  const int window_height = height();
+  float xb = -1*viewScale*window_width+viewXOffset;
+  float xe = 1*viewScale*window_width+viewXOffset;
+  float yb = -1*viewScale*window_height+viewYOffset;
+  float ye = 1*viewScale*window_height+viewYOffset;
+
+//  std::cout << grid_alpha << endl;
+
+  float size = 0.25;
+
+  xb = (int) (xb / size) * size - (size*2);
+  xe = (int) (xe / size) * size + (size*2);
+  yb = (int) (yb / size) * size - (size*2);
+  ye = (int) (ye / size) * size + (size*2);
+
+  float xsize=size,ysize=size;
+
+
+  float xlines = float (xe - xb)/xsize;
+  float ylines = float (ye - yb)/ysize;
 
   float x_grid_start = xb;
   float y_grid_start = yb;
@@ -831,6 +895,7 @@ void VectorDisplay::paintEvent(QPaintEvent* event) {
   }
 
   drawGrid();
+  microDrawGrid();
   drawOrigin();
   drawLines(lineThickness * viewScale);
   drawCircles(lineThickness * viewScale);

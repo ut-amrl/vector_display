@@ -269,6 +269,7 @@ class VectorDisplay : public QGLWidget {
                 const Eigen::Vector2f& p3,
                 float z = -0.1);
   void drawGrid();
+  void microDrawGrid();
   void drawOrigin();
   void drawArc(const Eigen::Vector2f& loc,
                float r1, float r2, float theta1, float theta2,
