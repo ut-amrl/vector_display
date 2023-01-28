@@ -625,6 +625,11 @@ void VectorDisplay::drawGrid() {
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
+void VectorDisplay::drawOrigin() {
+  glColor3f(0.25, 0.25, 0.25);
+  drawPoint(Eigen::Vector2f(0, 0),  3 * viewScale);
+}
+
 void VectorDisplay::resizeGL(int width, int height) {
   setupViewport();
 }
@@ -826,6 +831,7 @@ void VectorDisplay::paintEvent(QPaintEvent* event) {
   }
 
   drawGrid();
+  drawOrigin();
   drawLines(lineThickness * viewScale);
   drawCircles(lineThickness * viewScale);
   drawPoints(pointsSize * viewScale);
